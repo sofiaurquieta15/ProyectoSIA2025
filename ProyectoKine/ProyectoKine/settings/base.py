@@ -23,7 +23,6 @@ INSTALLED_APPS = [
 
     #aplicaciones propias
     "applications.login",
-    "applications.gestiondeusuarios",
     "applications.cursosestudiante",
     "applications.cursosdocente",
     "applications.casospacientes",
