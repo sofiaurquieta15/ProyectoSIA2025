@@ -14,7 +14,7 @@ Desarrollado bajo un enfoque ágil SCRUMBAN, KineLearn busca integrar la tecnolo
 - Millaray Zalazar Maluenda
 ## Instrucciones de instalación y ejecución
 Guía breve sobre cómo clonar e iniciar el proyecto localmente:
-- ***requisitos: tener Python instalado y Postgresql***
+- ***Requisitos: tener Python instalado y Postgresql***
 1. Clonar el repositorio
 2. Crear y activar un entorno virtual
 3. Entrar al repositorio
