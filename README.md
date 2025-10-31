@@ -27,7 +27,7 @@ A continuación se muestran los parámetros de conexión utilizados por el proye
 *Los valores son de ejemplo y no representan credenciales reales.*
 - **Tipo de base de datos:** PostgreSQL  
 - **Host:** localhost  
-- Puerto:** 5432  
+- **Puerto:** 5432  
 - **Nombre de la base de datos:** kinelearn_db  
 - **Usuario:** kinelearn_user  
 - **Contraseña:** ******** (no se expone públicamente)
