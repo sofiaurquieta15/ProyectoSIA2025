@@ -1,32 +1,55 @@
 from django.db import models
+from applications.login.models import Estudiante  # Import the Estudiante model
 from applications.cursosdocente.models import Curso
 
 class Paciente(models.Model):
-    id_curso = models.ForeignKey(Curso, on_delete=models.CASCADE)
-    nombre_caso = models.CharField("Nombre Caso", max_length=200)
-    tipo_de_caso = models.CharField("Tipo de Caso", max_length=150)
-    descripcion = models.TextField("Descripción del caso")
-    url_video = models.URLField("URL video")
-    pregunta = models.TextField("Pregunta")
+    titulopaciente = models.CharField("Título Paciente", max_length=255)
+    descpaciente = models.TextField("Descripción del Paciente")
+    categoriapaciente = models.CharField("Categoría Paciente", max_length=100)
+    id_curso = models.ForeignKey('cursosdocente.Curso', on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.nombre_caso} <{self.id}>"
+        return self.titulopaciente
 
-class Diagnostico(models.Model):
+class Etapa(models.Model):
+    nombreetapa = models.CharField("Nombre Etapa", max_length=100)
+    numetapa = models.IntegerField("Número de Etapa")  # 1, 2, or 3
+    urlvideo = models.URLField("URL Video")
     id_paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
-    fecha_creacion = models.DateField("Fecha de Creación",auto_now_add=True)
-    nombre_formulario = models.CharField("Nombre Formulario",max_length=150)
-    descripcion = models.TextField("Descripción del formulario") 
 
     def __str__(self):
-        return f"Diagnóstico {self.id} para {self.id_paciente.nombre_caso}"
+        return f"Etapa {self.numetapa}: {self.nombreetapa}"
+
+class TipoPregunta(models.Model):
+    nombretipo = models.CharField("Tipo de Pregunta", max_length=50)
+
+    def __str__(self):
+        return self.nombretipo
+
+class Pregunta(models.Model):
+    titulopregunta = models.CharField("Título Pregunta", max_length=255)
+    id_etapa = models.ForeignKey(Etapa, on_delete=models.CASCADE)
+    id_tipo = models.ForeignKey(TipoPregunta, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.titulopregunta
 
 class Respuesta(models.Model):
-    id_paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
-    id_diagnostico = models.ForeignKey(Diagnostico, on_delete=models.CASCADE)
-    correcta_incorrecta = models.BooleanField()
-    respuesta_correcta = models.TextField("Respuesta correcta")
+    respuesta_text = models.TextField("Respuesta (Texto)")
+    respuesta_bool = models.BooleanField("Respuesta (Alternativa)")
     retroalimentacion = models.TextField("Retroalimentación")
+    is_correct = models.BooleanField("Es Correcta?")
+    id_pregunta = models.ForeignKey(Pregunta, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"Respuesta {self.id} para {self.id_paciente.nombre_caso}"
+        return f"Respuesta: {self.id_pregunta.titulopregunta}"
+
+class Registro(models.Model):
+    respuestaselect = models.CharField("Respuesta Seleccionada", max_length=255)
+    fechaenvio = models.DateTimeField("Fecha de Envío")
+    id_respuesta = models.ForeignKey(Respuesta, on_delete=models.CASCADE)
+    id_estudiante = models.ForeignKey(Estudiante, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Registro de {self.id_estudiante.nombre} - {self.respuestaselect}"
+
