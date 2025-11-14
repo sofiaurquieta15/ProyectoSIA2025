@@ -1,5 +1,5 @@
 from django.db import models
-from applications.login.models import Estudiante  # Import the Estudiante model
+from applications.login.models import Estudiante  # Import de Estudiante model
 from applications.login.models import Docente
 from applications.cursosdocente.models import Curso
 
@@ -20,6 +20,12 @@ class Etapa(models.Model):
 
     def _str_(self):
         return f"Etapa {self.numetapa}: {self.nombreetapa}"
+    class Meta:
+        verbose_name = "Etapa"
+        verbose_name_plural = "Etapas"
+        ordering = ['id_paciente','numetapa'] 
+        unique_together = ('id_paciente', 'numetapa') #esto permite que un paciente no pueda tener la misma etapa dos veces
+        
 
 class Pregunta(models.Model):
     TIPO_PREGUNTA_CHOICES = [
