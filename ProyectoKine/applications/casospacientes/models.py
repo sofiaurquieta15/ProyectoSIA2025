@@ -3,13 +3,19 @@ from applications.login.models import Estudiante  # Import de Estudiante model
 from applications.login.models import Docente
 from applications.cursosdocente.models import Curso
 
+class TipoCaso(models.Model):
+    nombre = models.CharField("Tipo de Caso", max_length=100, unique=True)
+
+    def __str__(self):
+        return self.nombre
+
 class Paciente(models.Model):
     titulopaciente = models.CharField("Título Paciente", max_length=255)
     descpaciente = models.TextField("Descripción del Paciente")
-    categoriapaciente = models.CharField("Categoría Paciente", max_length=100)
+    tipo_caso = models.ForeignKey(TipoCaso, on_delete=models.CASCADE)
     id_curso = models.ForeignKey('cursosdocente.Curso', on_delete=models.CASCADE)
 
-    def _str_(self):
+    def __str__(self):
         return self.titulopaciente
 
 class Etapa(models.Model):
