@@ -14,6 +14,7 @@ SECRET_KEY = "django-insecure-ok8b9@mu3@eumbb1#8gkz+8b5r(rs#6^ym%p%gi-up67cukwf_
 # Application definition
 
 INSTALLED_APPS = [
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -91,3 +92,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+JAZZMIN_SETTINGS={
+    "site_title": "KineSmart Admin",
+    "site_header": "KineSmart Dashboard",
+    "welcome_sign": "Bienvenido KineSmart",
+    "site_brand": "KineSmart",
+    "site_logo": "images/logo_UCN.png",
+    "site_icon": "images/logo_UCN.png",
+    "custom_css": "css/admin_custom.css",
+    "custom_js": None,
+}

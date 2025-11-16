@@ -1,0 +1,14 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Administración Casos{% endblock %}
+
+{% block branding %}
+<a href="{% url 'admin:index' %}" class="brand-link">
+    <img src="{% static 'img/logo_UCN.png' %}" alt="UCN Logo" style="height:40px; margin-right:10px;">
+    <span class="brand-text font-weight-light">Administración Humedal UCN</span>
+</a>
+{% endblock %}
+
+{% block welcome %}
+<p>Bienvenida al Sistema UCN</p>
+{% endblock %}

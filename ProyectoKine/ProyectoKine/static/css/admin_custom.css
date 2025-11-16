@@ -1,0 +1,115 @@
+:root {
+  --primary: #2f8f7f;
+  --secondary: #85d46d;
+  --background: #F2F2F2;
+}
+
+/* ======= Cabecera y sidebar ======= */
+.main-header {
+  background-color: var(--primary) !important;
+  color: white !important;
+}
+
+.navbar .nav-link i,
+.main-header i,
+.navbar a,
+.navbar-brand,
+.navbar .nav-link {
+  color: white !important;
+}
+
+/* ======= Sidebar ======= */
+.main-sidebar {
+  background-color: var(--primary) !important;
+  color: white !important;
+}
+
+.main-sidebar a {
+  color: white !important;
+}
+
+.main-sidebar a:hover {
+  background-color: var(--secondary) !important;
+  color: white !important;
+}
+
+/* ======= Botones primarios ======= */
+.btn.btn-primary,
+button.btn-primary,
+a.btn-primary,
+input[type="submit"].btn-primary {
+  background-color: #7c2c8c !important;
+  border-color: #923088 !important;
+  color: #fff !important;
+}
+
+.btn.btn-primary:hover,
+button.btn-primary:hover,
+a.btn-primary:hover,
+input[type="submit"].btn-primary:hover {
+  background-color: #61206b !important;
+  border-color: #5b2375 !important;
+  color: #fff !important;
+}
+
+/* ======= Botones secundarios ======= */
+.btn.btn-secondary,
+button.btn-secondary,
+a.btn-secondary {
+  background-color: #003057 !important;
+  border-color: #003057 !important;
+  color: #fff !important;
+}
+
+.btn.btn-secondary:hover,
+button.btn-secondary:hover,
+a.btn-secondary:hover {
+  background-color: #001f3d !important;
+  border-color: #001f3d !important;
+}
+
+/* Ajuste del tamaño del logo en la pantalla de login */
+.login-logo img {
+    width: 150px !important;  /* puedes probar con 150 o 180 si prefieres */
+    height: auto !important;
+    margin: 25px auto !important;
+    display: block;
+}
+
+/* ===== BOTONES PRINCIPALES DEL ADMIN ===== */
+
+/* Botones de acción generales (Guardar, Añadir, Editar) */
+.content-wrapper .btn.btn-primary,
+.content-wrapper .btn-primary,
+.card-footer .btn.btn-primary,
+.card-footer .btn-primary {
+    background-color: #003865 !important;   /* azul institucional UCN */
+    border-color: #003865 !important;
+    color: #fff !important;
+}
+
+.content-wrapper .btn.btn-primary:hover,
+.content-wrapper .btn-primary:hover,
+.card-footer .btn.btn-primary:hover,
+.card-footer .btn-primary:hover {
+    background-color: #005a8c !important;   /* azul claro UCN */
+    border-color: #005a8c !important;
+}
+
+/* Botones de éxito (Guardar cambios, etc.) */
+.content-wrapper .btn.btn-success,
+.content-wrapper .btn-success,
+.card-footer .btn.btn-success {
+    background-color: #206b67  !important;   /* verde institucional UCN */
+    border-color: #2a5482  !important;
+    color: #fff !important;
+}
+
+.content-wrapper .btn.btn-success:hover,
+.content-wrapper .btn-success:hover,
+.card-footer .btn.btn-success:hover {
+    background-color: #6B4620  !important;   /* verde más oscuro al hover */
+    border-color: #6B4620  !important;
+}
+
+
