@@ -6,7 +6,10 @@
 
 {# Reemplazamos el contenido de la navegación (nav_buttons) con el enlace de cerrar sesión #}
 {% block nav_buttons %}
-    <a href="#" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full shadow-lg transition duration-300">Cerrar Sesión</a>
+    <a href="{% url 'login:logout' %}"
+        class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full shadow">
+        CERRAR SESIÓN
+    </a>
 {% endblock %}
 
 {# Reemplazamos el contenido principal del body con la lista de cursos #}
@@ -28,12 +31,9 @@
                         {{ curso.nombrecurso }}
                     </h3>
 
-                    <p class="text-md text-gray-700 mt-3">
-                        {{ curso.objetivos }}
-                    </p>
                 </div>
 
-                <a href="#" 
+               <a href="{% url 'casos:lista_casos' curso.id %}" 
                     class="btn-primary text-white font-bold py-3 w-3/4 mx-auto mt-6 rounded-full shadow-lg hover:opacity-90 transition duration-300">
                     ACCEDER
                 </a>

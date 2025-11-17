@@ -11,7 +11,6 @@ class Curso(models.Model):
         verbose_name = "Curso"
         verbose_name_plural = "Cursos"
         ordering = ['nombrecurso']
-        unique_together = ('kinesiología', 'id_docente')
 
     def __str__(self):
         return self.nombrecurso

@@ -1,0 +1,151 @@
+{% extends 'base_site.html' %}
+{% load static %}
+
+{% block title %}Etapa {{ num_etapa }} - {{ paciente.titulopaciente }}{% endblock %}
+
+{% block nav_buttons %}
+<a href="{% url 'casos:detalle_paciente' paciente.id %}" 
+   class="bg-white text-black px-4 py-2 rounded-full mr-4 font-semibold shadow">
+   CASOS PACIENTES
+</a>
+<a href="{% url 'login:logout' %}"
+   class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full shadow">
+   CERRAR SESIÓN
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="container mx-auto py-10 px-6">
+
+    <h2 class="text-4xl font-extrabold text-center">{{ etapa.nombreetapa }}</h2>
+    <p class="text-center text-xl mb-10">{{ etapa.nombreetapa }}</p>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- VIDEO -->
+        <div class="bg-black h-[350px] flex items-center justify-center">
+            <iframe class="w-full h-full"
+                    src="{{ etapa.urlvideo }}"
+                    frameborder="0"
+                    allowfullscreen>
+            </iframe>
+        </div>
+
+        <!-- PREGUNTA -->
+        <div class="border p-6 rounded-lg shadow-md">
+            <h3 class="text-3xl font-bold text-center mb-4">
+                {{ pregunta.titulo }}
+            </h3>
+
+            <p class="text-lg mb-6 text-center">{{ pregunta.texto }}</p>
+
+            <form id="form-respuesta">
+
+                {% for opcion in opciones %}
+                <label class="flex items-center space-x-3 mb-4 cursor-pointer">
+
+                    <input type="radio" name="opcion"
+                           value="{{ opcion.id }}"
+                           class="radio-opcion h-5 w-5">
+
+                    <span>{{ opcion.texto_opcion }}</span>
+                </label>
+                {% endfor %}
+
+                <button id="btn-siguiente"
+                        class="bg-gray-400 text-white font-bold py-2 px-6 rounded-full mt-4 block mx-auto"
+                        disabled>
+                    SIGUIENTE
+                </button>
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL FEEDBACK -->
+<div id="modal-feedback" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+        <h2 class="text-2xl font-bold mb-4" id="feedback-title"></h2>
+        <p id="feedback-text" class="mb-6"></p>
+        <button onclick="closeModal()"
+                class="bg-blue-700 text-white px-4 py-2 rounded-full font-bold">
+            Entendido
+        </button>
+    </div>
+</div>
+
+<!-- MODAL FINAL DEL CASO -->
+<div id="modal-final" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+        <h2 class="text-2xl font-bold mb-4">🎉 ¡Caso Finalizado!</h2>
+        <p class="mb-6">Has terminado todas las etapas de este caso.</p>
+        <a href="{% url 'casos:detalle_paciente' paciente.id %}"
+           class="bg-blue-700 text-white px-4 py-2 rounded-full font-bold">
+            Volver a Etapas
+        </a>
+    </div>
+</div>
+
+<script>
+let estudiante_id = "{{ request.session.estudiante_id }}";
+let ultima = {{ ultima_etapa|yesno:"true,false" }};
+let siguienteURL = "{% if not ultima_etapa %}{% url 'casos:detalle_etapa' paciente.id num_etapa|add:1 %}{% endif %}";
+
+function closeModal() {
+    document.getElementById('modal-feedback').classList.add('hidden');
+}
+
+document.querySelectorAll(".radio-opcion").forEach(radio => {
+    radio.addEventListener("change", function() {
+
+        let opcion_id = this.value;
+        let pregunta_id = "{{ pregunta.id }}";
+
+        fetch("{% url 'casos:validar_respuesta' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: new URLSearchParams({
+                tipo: "MULTIPLE",
+                opcion_id,
+                pregunta_id,
+                estudiante_id
+            })
+        })
+        .then(resp => resp.json())
+        .then(data => {
+
+            if (data.correcto) {
+
+                let btn = document.getElementById("btn-siguiente");
+                btn.classList.remove("bg-gray-400");
+                btn.classList.add("bg-blue-700");
+                btn.disabled = false;
+
+                btn.onclick = function(e) {
+                    e.preventDefault();
+
+                    if (ultima) {
+                        document.getElementById('modal-final').classList.remove('hidden');
+                    } else {
+                        window.location.href = siguienteURL;
+                    }
+                };
+
+            } else {
+
+                document.getElementById("feedback-title").innerText = "❌ Respuesta Incorrecta";
+                document.getElementById("feedback-text").innerText = data.retroalimentacion || "Respuesta incorrecta";
+                document.getElementById("modal-feedback").classList.remove("hidden");
+
+            }
+        });
+    });
+});
+</script>
+
+{% endblock %}

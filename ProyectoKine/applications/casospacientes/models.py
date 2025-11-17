@@ -31,7 +31,21 @@ class Etapa(models.Model):
         verbose_name_plural = "Etapas"
         ordering = ['id_paciente','numetapa'] 
         unique_together = ('id_paciente', 'numetapa') #esto permite que un paciente no pueda tener la misma etapa dos veces
-        
+
+    def save(self, *args, **kwargs):
+        # Convertir URL tipo watch?v=
+        if "watch?v=" in self.urlvideo:
+            video_id = self.urlvideo.split("watch?v=")[1]
+            video_id = video_id.split("&")[0]  # limpia parámetros extra
+            self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
+
+        # Convertir URL tipo youtu.be
+        elif "youtu.be/" in self.urlvideo:
+            video_id = self.urlvideo.split("youtu.be/")[1]
+            video_id = video_id.split("?")[0]
+            self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
+
+        super().save(*args, **kwargs)  
 
 class Pregunta(models.Model):
     TIPO_PREGUNTA_CHOICES = [

@@ -5,7 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}KineLearn{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script 
+        src="https://cdn.tailwindcss.com">
+        window.onload = function() {
+            document.getElementById("page-container").classList.add("fade-in");
+        };
+    </script>
     <style>
         /* Estilos personalizados */
         :root {
@@ -46,7 +51,7 @@
             
             <div class="flex items-center space-x-3">
                 <img 
-                    src="{% static 'images/logo_UCN.png.png' %}" 
+                    src="{% static 'images/logo_UCN.png' %}" 
                     alt="Logo UCN Chile" 
                     class="rounded-full border-2 border-white h-10 w-10 object-contain"
                 > 
@@ -61,11 +66,12 @@
     </header>
     
     <main class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
+
         {% block content %}
         <div class="w-full max-w-sm p-8 bg-white card-border shadow-2xl text-center">
             
             <h2 class="text-3xl font-bold text-gray-800 mb-8">
-                Bienvenido a KineLearn
+            Bienvenido a KineLearn
             </h2>
             
             <div class="space-y-6">
@@ -74,11 +80,13 @@
                 </a>
                 
                 <a href="{%url 'login:login_docente'%}" class="btn-primary w-full block text-white font-bold py-4 px-10 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-[1.02]">
-                    Ingresar como Docente
+                Ingresar como Docente
                 </a>
             </div>
+
         </div>
         {% endblock %}
+
     </main>
 
     <footer class="mt-auto py-4 bg-gray-100 text-center text-gray-600 text-sm hidden">

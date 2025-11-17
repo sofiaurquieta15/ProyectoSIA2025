@@ -1,0 +1,83 @@
+{% extends 'base_site.html' %}
+{% load static %}
+
+{% block title %}{{ paciente.titulopaciente }} - KineLearn{% endblock %}
+
+{% block nav_buttons %}
+    <a href="{% url 'login:logout' %}"
+        class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full shadow">
+        CERRAR SESIÓN
+    </a>
+{% endblock %}
+
+{% block content %}
+
+<div class="flex-grow container mx-auto py-10 px-4 sm:px-6 lg:px-8">
+
+    <!-- ENCABEZADO DEL PACIENTE -->
+    <div class="bg-gray-200 p-8 rounded-lg shadow-md mb-12">
+
+        <h2 class="text-4xl font-extrabold text-center text-gray-900 mb-6">
+            {{ paciente.titulopaciente }}
+        </h2>
+
+        <p class="text-xl font-semibold text-gray-800">
+            Tipo de caso:
+        </p>
+        <p class="text-gray-700 mb-4 text-lg">
+            {{ paciente.tipo_caso }}
+        </p>
+
+        <p class="text-xl font-semibold text-gray-800">
+            Descripción:
+        </p>
+        <p class="text-gray-700 text-lg">
+            {{ paciente.descpaciente|linebreaks }}
+        </p>
+
+    </div>
+
+    <!-- TÍTULO DE ETAPAS -->
+    <h2 class="text-3xl font-extrabold text-gray-800 mb-8 text-center">
+        Etapas del caso
+    </h2>
+
+    <!-- TARJETAS DE ETAPAS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 justify-items-center">
+
+        {% for etapa in etapas %}
+        <div class="card-border w-full max-w-sm p-6 flex flex-col justify-between 
+                    text-center shadow-2xl bg-white transition hover:scale-[1.03]">
+
+            <div>
+                <h3 class="text-2xl font-extrabold text-gray-900 uppercase mb-2">
+                    ETAPA {{ etapa.numetapa }}
+                </h3>
+
+                <p class="text-md text-gray-700">
+                    {{ etapa.nombreetapa }}
+                </p>
+            </div>
+
+           <a href="{% url 'casos:detalle_etapa' paciente.id etapa.numetapa %}"
+                class="btn-primary text-white font-bold py-3 w-3/4 mx-auto rounded-full mt-6">
+                ACCEDER
+            </a>
+
+        </div>
+        {% endfor %}
+
+    </div>
+
+    <!-- BOTÓN VOLVER -->
+    <div class="w-full mt-10 flex justify-center">
+        <a href="{% url 'casos:lista_casos' paciente.id_curso.id %}"
+           class="px-6 py-2 rounded-full bg-gray-400 text-white font-semibold 
+                  hover:bg-gray-500 transition">
+            CASOS PACIENTES
+        </a>
+    </div>
+
+</div>
+
+{% endblock %}
