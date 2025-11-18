@@ -47,18 +47,16 @@ class VistaEtapaView(TemplateView):
         numetapa = kwargs['numetapa']
 
         etapa = get_object_or_404(Etapa, id_paciente=id_paciente, numetapa=numetapa)
-        pregunta = Pregunta.objects.get(id_etapa=etapa)
-
-        # Opciones solo si es múltiple
-        opciones = pregunta.opciones.all() if pregunta.tipo == "MULTIPLE" else None
+        
+        # 🔥 Ahora trae TODAS las preguntas de la etapa
+        preguntas = Pregunta.objects.filter(id_etapa=etapa).prefetch_related("opciones")
 
         paciente = Paciente.objects.get(id=id_paciente)
         total_etapas = Etapa.objects.filter(id_paciente=paciente).count()
 
         context.update({
             'etapa': etapa,
-            'pregunta': pregunta,
-            'opciones': opciones,
+            'preguntas': preguntas,
             'paciente': paciente,
             'num_etapa': numetapa,
             'ultima_etapa': numetapa == total_etapas,
@@ -72,28 +70,25 @@ def validar_respuesta_ajax(request):
     if request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
 
-    print("💥 POST RECIBIDO:", request.POST)  # <---- AGREGA ESTO
-    
-    # ---- Datos recibidos ----
-    opcion_id = request.POST.get("opcion_id")              # para MULTIPLE
-    texto_respuesta = request.POST.get("texto_respuesta", "").strip()  # para ESCRITA
+    opcion_id = request.POST.get("opcion_id")
+    texto_respuesta = request.POST.get("texto_respuesta", "").strip()
     pregunta_id = request.POST.get("pregunta_id")
     estudiante_id = request.POST.get("estudiante_id")
 
-    # ---- Validar existencia de pregunta ----
+    # Validar pregunta
     try:
         pregunta = Pregunta.objects.get(id=pregunta_id)
     except Pregunta.DoesNotExist:
         return JsonResponse({"error": "Pregunta no existe"}, status=400)
 
-    # ---- Validar existencia de estudiante ----
+    # Validar estudiante
     try:
         estudiante = Estudiante.objects.get(id=estudiante_id)
     except Estudiante.DoesNotExist:
         return JsonResponse({"error": "Estudiante no existe"}, status=400)
 
     # ======================================================
-    # =============   PREGUNTA DE SELECCIÓN   ==============
+    # =============   SELECCIÓN MÚLTIPLE   =================
     # ======================================================
     if opcion_id:
         try:
@@ -110,11 +105,12 @@ def validar_respuesta_ajax(request):
 
         return JsonResponse({
             "correcto": opcion.is_correct,
-            "retroalimentacion": opcion.retroalimentacion or ""
+            "retroalimentacion": opcion.retroalimentacion or "",
+            "retroalimentacion_general": pregunta.retroalimentacion_general or ""
         })
 
     # ======================================================
-    # =============   PREGUNTA ESCRITA   ===================
+    # ================   RESPUESTA ESCRITA   =================
     # ======================================================
     if texto_respuesta:
         Registro.objects.create(
@@ -126,10 +122,8 @@ def validar_respuesta_ajax(request):
 
         return JsonResponse({
             "correcto": True,
-            "retroalimentacion": pregunta.retroalimentacion_general or ""
+            "retroalimentacion": pregunta.retroalimentacion_general or "",
+            "retroalimentacion_general": pregunta.retroalimentacion_general or ""
         })
 
-    # Si no llegó ni opción ni texto, los datos están incompletos
-    return JsonResponse({
-        "error": "Datos insuficientes en la petición"
-    }, status=400)
+    return JsonResponse({"error": "Datos insuficientes"}, status=400)

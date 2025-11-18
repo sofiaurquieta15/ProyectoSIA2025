@@ -34,48 +34,54 @@
         </div>
 
         <!-- PREGUNTA -->
-        <div class="border p-6 rounded-lg shadow-md">
+       <div class="border p-6 rounded-lg shadow-md">
 
-            <h3 class="text-3xl font-bold text-center mb-4">PREGUNTA</h3>
+            <h3 class="text-3xl font-bold text-center mb-4">PREGUNTAS</h3>
 
-            <p class="text-lg mb-6 text-center">{{ pregunta.texto }}</p>
+            <form id="form-multipregunta">
 
-            <!-- SELECCIÓN MÚLTIPLE -->
-            {% if pregunta.tipo == "MULTIPLE" %}
-            <form id="form-multiple">
-                {% for opcion in opciones %}
-                <label class="flex items-center space-x-3 mb-4 cursor-pointer">
-                    <input type="radio" name="opcion"
-                           value="{{ opcion.id }}"
-                           class="radio-opcion h-5 w-5">
-                    <span>{{ opcion.texto_opcion }}</span>
-                </label>
+                {% for pregunta in preguntas %}
+                <div class="mb-10 p-4 border rounded-lg bg-gray-50 pregunta-item"
+                        data-pregunta-id="{{ pregunta.id }}">
+            
+                        <p class="text-lg font-bold mb-3 text-xl">
+                            {{ forloop.counter }}. {{ pregunta.titulo }}
+                        </p>
+
+                        <p class="text-gray-700 mb-3">
+                            {{ pregunta.texto }}
+                        </p>
+
+                        {% if pregunta.tipo == "MULTIPLE" %}
+                        {% for opcion in pregunta.opciones.all %}
+                        <label class="flex items-center space-x-3 mb-3 cursor-pointer">
+                            <input type="radio"
+                                name="pregunta_{{ pregunta.id }}"
+                                value="{{ opcion.id }}"
+                                class="radio-opcion h-5 w-5">
+                            <span>{{ opcion.texto_opcion }}</span>
+                        </label>
+                        {% endfor %}
+                    {% endif %}
+
+                    {% if pregunta.tipo == "ESCRITA" %}
+                        <textarea class="respuesta-escrita w-full h-28 p-3 bg-gray-200 rounded-lg"
+                            placeholder="Escribe tu respuesta aquí..."
+                            data-pregunta-id="{{ pregunta.id }}"></textarea>
+                    {% endif %}
+
+                </div>
                 {% endfor %}
 
-                <button id="btn-siguiente"
-                        class="bg-gray-400 text-white font-bold py-2 px-6 rounded-full mt-4 block mx-auto"
-                        disabled>
+                <button id="btn-enviar-total"
+                        class="bg-blue-700 text-white font-bold py-2 px-6 rounded-full mt-4 block mx-auto">
                     {% if ultima_etapa %} FINALIZAR {% else %} SIGUIENTE {% endif %}
                 </button>
-            </form>
-            {% endif %}
 
-            <!-- RESPUESTA ESCRITA -->
-            {% if pregunta.tipo == "ESCRITA" %}
-            <form id="form-escrita">
-                <textarea id="respuesta-texto"
-                          class="w-full h-36 p-4 bg-gray-200 rounded-lg mb-6"
-                          placeholder="Introduce aquí tu respuesta."
-                          required></textarea>
-
-                <button id="btn-enviar-escrita"
-                        class="bg-blue-700 text-white font-bold py-2 px-6 rounded-full mt-4 block mx-auto">
-                    {% if ultima_etapa %} ENVIAR Y FINALIZAR {% else %} ENVIAR {% endif %}
-                </button>
             </form>
-            {% endif %}
 
         </div>
+
     </div>
 
 </div>
@@ -107,102 +113,167 @@
 </div>
 
 <script>
+
 let estudiante_id = "{{ request.session.estudiante_id }}";
 let ultima = {{ ultima_etapa|yesno:"true,false" }};
 let siguienteURL = "{% if not ultima_etapa %}{% url 'casos:detalle_etapa' paciente.id num_etapa|add:1 %}{% endif %}";
 
-function closeModal() {
-    document.getElementById('modal-feedback').classList.add('hidden');
-}
-
-/* ===============================
-      SELECCIÓN MÚLTIPLE
-   =============================== */
-document.querySelectorAll(".radio-opcion").forEach(radio => {
-    radio?.addEventListener("change", function () {
-
-        let opcion_id = this.value;
-        let pregunta_id = "{{ pregunta.id }}";
-
-        fetch("{% url 'casos:validar_respuesta' %}", {
-            method: "POST",
-            headers: { "X-CSRFToken": "{{ csrf_token }}" },
-            body: new URLSearchParams({
-                tipo: "MULTIPLE",
-                opcion_id,
-                pregunta_id,
-                estudiante_id
-            })
-        })
-        .then(r => r.json())
-        .then(data => {
-
-            if (data.correcto) {
-                let btn = document.getElementById("btn-siguiente");
-                btn.classList.remove("bg-gray-400");
-                btn.classList.add("bg-blue-700");
-                btn.disabled = false;
-
-                btn.onclick = function (e) {
-                    e.preventDefault();
-                    if (ultima) {
-                        document.getElementById('modal-final').classList.remove("hidden");
-                    } else {
-                        window.location.href = siguienteURL;
-                    }
-                };
-
-            } else {
-                modalFeedback("❌ Respuesta Incorrecta", data.retroalimentacion);
-            }
-        });
-    });
-});
-
-/* ===============================
-        RESPUESTA ESCRITA
-   =============================== */
-document.getElementById("btn-enviar-escrita")?.addEventListener("click", function(e) {
-    e.preventDefault();
-
-    let texto = document.getElementById("respuesta-texto").value.trim();
-    let pregunta_id = "{{ pregunta.id }}";
-
-    if (!texto) return alert("Debe escribir una respuesta.");
-
-    fetch("{% url 'casos:validar_respuesta' %}", {
-        method: "POST",
-        headers: { "X-CSRFToken": "{{ csrf_token }}" },
-        body: new URLSearchParams({
-            tipo: "ESCRITA",
-            texto_respuesta: texto,
-            pregunta_id,
-            estudiante_id
-        })
-    })
-    .then(r => r.json())
-    .then(data => {
-
-        modalFeedback("Respuesta enviada", data.retroalimentacion);
-
-        document.querySelector("#modal-feedback button").onclick = function () {
-            document.getElementById("modal-feedback").classList.add("hidden");
-
-            if (ultima) {
-                document.getElementById("modal-final").classList.remove("hidden");
-            } else {
-                window.location.href = siguienteURL;
-            }
-        };
-    });
-});
-
-/* MODAL HELPER */
-function modalFeedback(title, text) {
-    document.getElementById("feedback-title").innerText = title;
-    document.getElementById("feedback-text").innerText = text || "";
+/* ============================
+      MODAL FEEDBACK
+   ============================ */
+function modalFeedback(title, htmlText) {
+    document.getElementById("feedback-title").innerHTML = title;
+    document.getElementById("feedback-text").innerHTML = htmlText || "";
     document.getElementById("modal-feedback").classList.remove("hidden");
 }
+
+function closeModal() {
+    document.getElementById("modal-feedback").classList.add("hidden");
+}
+
+/* ============================
+       BOTÓN SIGUIENTE
+   ============================ */
+const btnEnviar = document.getElementById("btn-enviar-total");
+
+if (btnEnviar) {
+    btnEnviar.addEventListener("click", function(e) {
+        e.preventDefault();
+
+        let preguntas = document.querySelectorAll(".pregunta-item");
+        let respuestas = [];
+        let errores = [];
+
+        /* =============================
+           1) RECOLECTAR RESPUESTAS
+        ============================== */
+        preguntas.forEach(p => {
+
+            let pregunta_id = p.dataset.preguntaId;
+            let textarea = p.querySelector("textarea");
+            let seleccionMultiple = p.querySelector("input[type=radio]:checked");
+
+            if (textarea) {
+                // ========= PREGUNTA ESCRITA =========
+                let txt = textarea.value.trim();
+
+                if (!txt) {
+                    errores.push({
+                        numero: pregunta_id,
+                        texto: "Debe escribir una respuesta."
+                    });
+                }
+
+                respuestas.push({
+                    tipo: "ESCRITA",
+                    texto_respuesta: txt,
+                    pregunta_id: pregunta_id
+                });
+
+            } else {
+                // ========= PREGUNTA MULTIPLE =========
+                if (!seleccionMultiple) {
+                    errores.push({
+                        numero: pregunta_id,
+                        texto: "Debe seleccionar una alternativa."
+                    });
+                }
+
+                respuestas.push({
+                    tipo: "MULTIPLE",
+                    opcion_id: seleccionMultiple ? seleccionMultiple.value : "",
+                    pregunta_id: pregunta_id
+                });
+            }
+
+        });
+
+        /* =============================
+           2) SI HAY ERRORES DE ENTRADA
+        ============================== */
+        if (errores.length > 0) {
+            let msg = "";
+            errores.forEach(e => {
+                msg += `<strong>Pregunta ${e.numero} - Incompleta</strong><br>${e.texto}<br><br>`;
+            });
+            modalFeedback("⚠️ Respuestas incompletas", msg);
+            return;
+        }
+
+        /* =============================
+           3) VALIDAR EN EL BACKEND
+        ============================== */
+        let incorrectas = [];
+        let retro_generales = [];
+
+        let promesas = respuestas.map(r => {
+            return fetch("{% url 'casos:validar_respuesta' %}", {
+                method: "POST",
+                headers: { "X-CSRFToken": "{{ csrf_token }}" },
+                body: new URLSearchParams({
+                    ...r,
+                    estudiante_id
+                })
+            })
+            .then(res => res.json())
+            .then(res => {
+
+                if (!res.correcto) {
+                    incorrectas.push({
+                        pregunta_id: r.pregunta_id,
+                        retro: res.retroalimentacion || "Respuesta incorrecta."
+                    });
+                } else {
+                    retro_generales.push({
+                        pregunta_id: r.pregunta_id,
+                        retro: res.retroalimentacion_general || ""
+                    });
+                }
+
+            });
+        });
+
+        /* =============================
+           4) PROCESAR RESULTADOS
+        ============================== */
+        Promise.all(promesas).then(() => {
+
+            // ❌ HAY INCORRECTAS
+            if (incorrectas.length > 0) {
+                let texto = "";
+                incorrectas.forEach(i => {
+                    texto += `<strong>Pregunta ${i.pregunta_id} - Incorrecta</strong><br>`;
+                    texto += `${i.retro}<br><br>`;
+                });
+
+                modalFeedback("❌ Respuestas incorrectas", texto);
+                return;
+            }
+
+            // ✔️ TODAS CORRECTAS
+            let textoBueno = "";
+            retro_generales.forEach(r => {
+                textoBueno += `<strong>Pregunta ${r.pregunta_id}:</strong><br>${r.retro}<br><br>`;
+            });
+
+            modalFeedback("✅ Todas correctas", textoBueno);
+
+            // Avanzar al cerrar el modal
+            document.querySelector("#modal-feedback button").onclick = function () {
+                document.getElementById("modal-feedback").classList.add("hidden");
+
+                if (ultima) {
+                    document.getElementById("modal-final").classList.remove("hidden");
+                } else {
+                    window.location.href = siguienteURL;
+                }
+            };
+
+        });
+
+    });
+}
+
 </script>
 
 {% endblock %}
