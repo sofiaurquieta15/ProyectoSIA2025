@@ -102,4 +102,28 @@ JAZZMIN_SETTINGS={
     "site_icon": "images/logo_UCN.png",
     "custom_css": "css/admin_custom.css",
     "custom_js": None,
+
+    "icons": {
+        # === APP login ===
+        "login.docente": "fas fa-chalkboard-teacher",
+        "login.estudiante": "fas fa-user-graduate",
+
+        # === APP cursosdocente ===
+        "cursosdocente.curso": "fas fa-book",
+
+        # === APP casospacientes (tus modelos de casos/pacientes/etapas/preguntas/etc.) ===
+        "casospacientes.tipocaso": "fas fa-tags",
+        "casospacientes.paciente": "fas fa-user-injured",
+        "casospacientes.etapa": "fas fa-layer-group",
+        "casospacientes.pregunta": "fas fa-question-circle",
+        "casospacientes.opcionmultiple": "fas fa-check-square",
+        "casospacientes.registro": "fas fa-clipboard-check",
+
+        # === APP cursosestudiante ===
+        "cursosestudiante.avance": "fas fa-tasks",
+
+        # === Django interno ===
+        "auth.user": "fas fa-user-cog",
+        "auth.group": "fas fa-users-cog",
+    },
 }
