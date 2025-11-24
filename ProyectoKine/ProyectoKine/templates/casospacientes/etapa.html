@@ -1,12 +1,13 @@
 {% extends 'base_site.html' %}
 {% load static %}
+{% load dict_filters %}
 
-{% block title %}Etapa {{ num_etapa }} - {{ paciente.titulopaciente }}{% endblock %}
+{% block title %}Etapa {{ num_etapa }} - {{ paciente.nombre }}{% endblock %}
 
 {% block nav_buttons %}
 <a href="{% url 'casos:detalle_paciente' paciente.id %}"
    class="bg-white text-black px-4 py-2 rounded-full mr-4 font-semibold shadow">
-   CASOS PACIENTES
+   ETAPAS
 </a>
 
 <a href="{% url 'login:logout' %}"
@@ -25,58 +26,93 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         <!-- VIDEO -->
-        <div class="bg-black h-[350px] flex items-center justify-center">
+        <div class="bg-black h-[350px] flex items-center justify-center rounded-lg shadow">
             <iframe class="w-full h-full"
                     src="{{ etapa.urlvideo }}"
                     frameborder="0"
-                    allowfullscreen>
-            </iframe>
+                    allowfullscreen></iframe>
         </div>
 
-        <!-- PREGUNTA -->
-       <div class="border p-6 rounded-lg shadow-md">
+        <!-- PANEL PREGUNTAS -->
+        <div class="border p-6 rounded-lg shadow-md bg-white">
 
-            <h3 class="text-3xl font-bold text-center mb-4">PREGUNTAS</h3>
+            <h3 class="text-3xl font-bold text-center mb-6">PREGUNTAS</h3>
 
             <form id="form-multipregunta">
 
                 {% for pregunta in preguntas %}
                 <div class="mb-10 p-4 border rounded-lg bg-gray-50 pregunta-item"
-                        data-pregunta-id="{{ pregunta.id }}">
-            
-                        <p class="text-lg font-bold mb-3 text-xl">
-                            {{ forloop.counter }}. {{ pregunta.titulo }}
-                        </p>
+                     data-pregunta-id="{{ pregunta.id }}">
 
-                        <p class="text-gray-700 mb-3">
-                            {{ pregunta.texto }}
-                        </p>
+                    <p class="text-xl font-bold mb-3">
+                        {{ forloop.counter }}. {{ pregunta.titulo }}
+                    </p>
 
-                        {% if pregunta.tipo == "MULTIPLE" %}
+                    <p class="text-gray-700 mb-3">{{ pregunta.texto }}</p>
+
+                    {% if pregunta.tipo == "MULTIPLE" %}
+                        {% with prev=respuestas_previas|dict_get:pregunta.id %}
                         {% for opcion in pregunta.opciones.all %}
-                        <label class="flex items-center space-x-3 mb-3 cursor-pointer">
-                            <input type="radio"
-                                name="pregunta_{{ pregunta.id }}"
-                                value="{{ opcion.id }}"
-                                class="radio-opcion h-5 w-5">
-                            <span>{{ opcion.texto_opcion }}</span>
-                        </label>
-                        {% endfor %}
-                    {% endif %}
+                        <div class="mb-3">
+                            <label class="flex items-center space-x-3 cursor-pointer">
 
-                    {% if pregunta.tipo == "ESCRITA" %}
-                        <textarea class="respuesta-escrita w-full h-28 p-3 bg-gray-200 rounded-lg"
-                            placeholder="Escribe tu respuesta aquí..."
-                            data-pregunta-id="{{ pregunta.id }}"></textarea>
+                                <!-- RADIO -->
+                                <input type="radio"
+                                       name="pregunta_{{ pregunta.id }}"
+                                       value="{{ opcion.id }}"
+                                       class="radio-opcion h-5 w-5"
+                                       {% if prev == opcion.id %}checked{% endif %}
+                                       {% if completada %}disabled{% endif %}>
+
+                                <!-- TEXTO DE OPCIÓN -->
+                                <span class="
+                                    {% if completada and opcion.is_correct %}
+                                        text-green-600 font-bold
+                                    {% endif %}
+                                    {% if completada and prev == opcion.id and not opcion.is_correct %}
+                                        text-red-600 font-bold
+                                    {% endif %}
+                                ">
+                                    {{ opcion.texto_opcion }}
+                                </span>
+                            </label>
+
+                            {% if completada and opcion.is_correct %}
+                                <p class="ml-8 text-sm text-green-700">
+                                    <strong>Retroalimentación:</strong> {{ opcion.retroalimentacion }}
+                                </p>
+                            {% endif %}
+
+                            {% if completada and prev == opcion.id and not opcion.is_correct %}
+                                <p class="ml-8 text-sm text-red-700">
+                                    <strong>Retroalimentación:</strong> {{ opcion.retroalimentacion }}
+                                </p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        {% endwith %}
                     {% endif %}
 
                 </div>
                 {% endfor %}
 
-                <button id="btn-enviar-total"
-                        class="bg-blue-700 text-white font-bold py-2 px-6 rounded-full mt-4 block mx-auto">
-                    {% if ultima_etapa %} FINALIZAR {% else %} SIGUIENTE {% endif %}
-                </button>
+                <!-- BOTÓN -->
+                {% if completada %}
+                    <a href="{% if ultima_etapa %}
+                                {% url 'casos:detalle_paciente' paciente.id %}
+                             {% else %}
+                                {% url 'casos:detalle_etapa2' paciente.id num_etapa|add:1 %}
+                             {% endif %}"
+                       class="bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded-full mt-6 block mx-auto text-center shadow">
+                        {% if ultima_etapa %} FINALIZAR CASO {% else %} SIGUIENTE ETAPA {% endif %}
+                    </a>
+
+                {% else %}
+                    <button id="btn-enviar-total"
+                            class="bg-blue-700 text-white font-bold py-3 px-6 rounded-full mt-6 block mx-auto shadow">
+                        VALIDAR RESPUESTAS
+                    </button>
+                {% endif %}
 
             </form>
 
@@ -89,191 +125,90 @@
 <!-- MODAL -->
 <div id="modal-feedback"
      class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
-        <h2 class="text-2xl font-bold mb-4" id="feedback-title"></h2>
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center w-96">
+        <h2 id="feedback-title" class="text-2xl font-bold mb-4"></h2>
         <p id="feedback-text" class="mb-6"></p>
-        <button onclick="closeModal()"
+        <button id="modal-btn"
                 class="bg-blue-700 text-white px-4 py-2 rounded-full font-bold">
             Entendido
         </button>
     </div>
 </div>
 
-<!-- MODAL FINAL -->
-<div id="modal-final"
-     class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
-        <h2 class="text-2xl font-bold mb-4">🎉 ¡Caso Finalizado!</h2>
-        <p class="mb-6">Has terminado todas las etapas.</p>
-        <a href="{% url 'casos:detalle_paciente' paciente.id %}"
-           class="bg-blue-700 text-white px-4 py-2 rounded-full font-bold">
-           Volver a Etapas
-        </a>
-    </div>
-</div>
-
 <script>
-
 let estudiante_id = "{{ request.session.estudiante_id }}";
-let ultima = {{ ultima_etapa|yesno:"true,false" }};
-let siguienteURL = "{% if not ultima_etapa %}{% url 'casos:detalle_etapa' paciente.id num_etapa|add:1 %}{% endif %}";
+let siguienteURL = "{% url 'casos:detalle_etapa2' paciente.id num_etapa|add:1 %}";
 
-/* ============================
-      MODAL FEEDBACK
-   ============================ */
-function modalFeedback(title, htmlText) {
+let debeRedirigir = false; // <<< Nuevo: controla si el modal debe mandar a etapa 2
+
+/* ============= MODAL ============= */
+function modalFeedback(title, html, redirigir=false){
+    debeRedirigir = redirigir; // guardamos si debe redirigir o no
     document.getElementById("feedback-title").innerHTML = title;
-    document.getElementById("feedback-text").innerHTML = htmlText || "";
+    document.getElementById("feedback-text").innerHTML = html;
     document.getElementById("modal-feedback").classList.remove("hidden");
 }
 
-function closeModal() {
+document.getElementById("modal-btn").onclick = () => {
     document.getElementById("modal-feedback").classList.add("hidden");
-}
 
-/* ============================
-       BOTÓN SIGUIENTE
-   ============================ */
-const btnEnviar = document.getElementById("btn-enviar-total");
+    // SOLO redirigir si todas las respuestas fueron correctas
+    if (debeRedirigir) {
+        window.location.href = siguienteURL;
+    }
+};
 
-if (btnEnviar) {
-    btnEnviar.addEventListener("click", function(e) {
-        e.preventDefault();
+/* ============= VALIDACIÓN ============= */
+document.getElementById("btn-enviar-total")?.addEventListener("click", function(e){
+    e.preventDefault();
 
-        let preguntas = document.querySelectorAll(".pregunta-item");
-        let respuestas = [];
-        let errores = [];
+    let preguntas = document.querySelectorAll(".pregunta-item");
+    let respuestas = [];
+    let errores = [];
 
-        /* =============================
-           1) RECOLECTAR RESPUESTAS
-        ============================== */
-        preguntas.forEach(p => {
+    preguntas.forEach(p => {
 
-            let pregunta_id = p.dataset.preguntaId;
-            let textarea = p.querySelector("textarea");
-            let seleccionMultiple = p.querySelector("input[type=radio]:checked");
+        let pregunta_id = p.dataset.preguntaId;
+        let seleccion = p.querySelector("input[type=radio]:checked");
 
-            if (textarea) {
-                // ========= PREGUNTA ESCRITA =========
-                let txt = textarea.value.trim();
+        if(!seleccion){
+            errores.push(`Pregunta ${pregunta_id} sin responder.`);
+        }
 
-                if (!txt) {
-                    errores.push({
-                        numero: pregunta_id,
-                        texto: "Debe escribir una respuesta."
-                    });
-                }
-
-                respuestas.push({
-                    tipo: "ESCRITA",
-                    texto_respuesta: txt,
-                    pregunta_id: pregunta_id
-                });
-
-            } else {
-                // ========= PREGUNTA MULTIPLE =========
-                if (!seleccionMultiple) {
-                    errores.push({
-                        numero: pregunta_id,
-                        texto: "Debe seleccionar una alternativa."
-                    });
-                }
-
-                respuestas.push({
-                    tipo: "MULTIPLE",
-                    opcion_id: seleccionMultiple ? seleccionMultiple.value : "",
-                    pregunta_id: pregunta_id
-                });
-            }
-
+        respuestas.push({
+            tipo: "MULTIPLE",
+            opcion_id: seleccion ? seleccion.value : "",
+            pregunta_id: pregunta_id
         });
+    });
 
-        /* =============================
-           2) SI HAY ERRORES DE ENTRADA
-        ============================== */
-        if (errores.length > 0) {
-            let msg = "";
-            errores.forEach(e => {
-                msg += `<strong>Pregunta ${e.numero} - Incompleta</strong><br>${e.texto}<br><br>`;
-            });
-            modalFeedback("⚠️ Respuestas incompletas", msg);
+    if(errores.length > 0){
+        modalFeedback("⚠️ Faltan respuestas", errores.join("<br>"), false);
+        return;
+    }
+
+    let promesas = respuestas.map(r => {
+        return fetch("{% url 'casos:validar_respuesta' %}", {
+            method: "POST",
+            headers: {"X-CSRFToken": "{{ csrf_token }}"},
+            body: new URLSearchParams({...r, estudiante_id})
+        }).then(r => r.json());
+    });
+
+    Promise.all(promesas).then(res => {
+
+        let incorrectas = res.filter(r => !r.correcto);
+
+        if(incorrectas.length > 0){
+            modalFeedback("❌ Hay respuestas incorrectas", "Revisa las alternativas.", false);
             return;
         }
 
-        /* =============================
-           3) VALIDAR EN EL BACKEND
-        ============================== */
-        let incorrectas = [];
-        let retro_generales = [];
-
-        let promesas = respuestas.map(r => {
-            return fetch("{% url 'casos:validar_respuesta' %}", {
-                method: "POST",
-                headers: { "X-CSRFToken": "{{ csrf_token }}" },
-                body: new URLSearchParams({
-                    ...r,
-                    estudiante_id
-                })
-            })
-            .then(res => res.json())
-            .then(res => {
-
-                if (!res.correcto) {
-                    incorrectas.push({
-                        pregunta_id: r.pregunta_id,
-                        retro: res.retroalimentacion || "Respuesta incorrecta."
-                    });
-                } else {
-                    retro_generales.push({
-                        pregunta_id: r.pregunta_id,
-                        retro: res.retroalimentacion_general || ""
-                    });
-                }
-
-            });
-        });
-
-        /* =============================
-           4) PROCESAR RESULTADOS
-        ============================== */
-        Promise.all(promesas).then(() => {
-
-            // ❌ HAY INCORRECTAS
-            if (incorrectas.length > 0) {
-                let texto = "";
-                incorrectas.forEach(i => {
-                    texto += `<strong>Pregunta ${i.pregunta_id} - Incorrecta</strong><br>`;
-                    texto += `${i.retro}<br><br>`;
-                });
-
-                modalFeedback("❌ Respuestas incorrectas", texto);
-                return;
-            }
-
-            // ✔️ TODAS CORRECTAS
-            let textoBueno = "";
-            retro_generales.forEach(r => {
-                textoBueno += `<strong>Pregunta ${r.pregunta_id}:</strong><br>${r.retro}<br><br>`;
-            });
-
-            modalFeedback("✅ Todas correctas", textoBueno);
-
-            // Avanzar al cerrar el modal
-            document.querySelector("#modal-feedback button").onclick = function () {
-                document.getElementById("modal-feedback").classList.add("hidden");
-
-                if (ultima) {
-                    document.getElementById("modal-final").classList.remove("hidden");
-                } else {
-                    window.location.href = siguienteURL;
-                }
-            };
-
-        });
-
+        // TODAS CORRECTAS → redirige al cerrar modal
+        modalFeedback("✔ ¡Correcto!", "Todas las respuestas son correctas.", true);
     });
-}
 
+});
 </script>
 
 {% endblock %}

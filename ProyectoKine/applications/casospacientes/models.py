@@ -10,42 +10,64 @@ class TipoCaso(models.Model):
         return self.nombre
 
 class Paciente(models.Model):
-    titulopaciente = models.CharField("Título Paciente", max_length=255)
-    descpaciente = models.TextField("Descripción del Paciente")
+    nombre = models.CharField("Nombre del Paciente", max_length=255)
+    edad = models.IntegerField("Edad")
+    sexo = models.CharField(
+        "Sexo",
+        max_length=20,
+        choices=[
+            ("Masculino", "Masculino"),
+            ("Femenino", "Femenino"),
+            ("Otro", "Otro"),
+        ]
+    )
+    ocupacion = models.CharField("Ocupación", max_length=255)
+
+    descripcion = models.TextField("Descripción del Paciente")
+
     tipo_caso = models.ForeignKey(TipoCaso, on_delete=models.CASCADE)
     id_curso = models.ForeignKey('cursosdocente.Curso', on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.titulopaciente
+        return self.nombre
 
 class Etapa(models.Model):
+    TIPO_ETAPA = [
+        ("MULTIPLE", "Selección Múltiple (Etapa 1)"),
+        ("EXPLORACIONES", "Exploraciones Clínicas (Etapa 2)"),
+        ("ESCRITA", "Respuesta Escrita (Etapa 3)"),
+    ]
+
     nombreetapa = models.CharField("Nombre Etapa", max_length=100)
     numetapa = models.IntegerField("Número de Etapa")
     urlvideo = models.URLField("URL Video")
     id_paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
 
-    def _str_(self):
-        return f"Etapa {self.numetapa}: {self.nombreetapa}"
+    tipo_pregunta = models.CharField(
+        "Tipo de Etapa",
+        max_length=20,
+        choices=TIPO_ETAPA,
+        default="MULTIPLE"
+    )
+
     class Meta:
         verbose_name = "Etapa"
         verbose_name_plural = "Etapas"
-        ordering = ['id_paciente','numetapa'] 
-        unique_together = ('id_paciente', 'numetapa') #esto permite que un paciente no pueda tener la misma etapa dos veces
+        ordering = ['id_paciente','numetapa']
+        unique_together = ('id_paciente', 'numetapa')
 
     def save(self, *args, **kwargs):
         # Convertir URL tipo watch?v=
         if "watch?v=" in self.urlvideo:
-            video_id = self.urlvideo.split("watch?v=")[1]
-            video_id = video_id.split("&")[0]  # limpia parámetros extra
+            video_id = self.urlvideo.split("watch?v=")[1].split("&")[0]
             self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
 
         # Convertir URL tipo youtu.be
         elif "youtu.be/" in self.urlvideo:
-            video_id = self.urlvideo.split("youtu.be/")[1]
-            video_id = video_id.split("?")[0]
+            video_id = self.urlvideo.split("youtu.be/")[1].split("?")[0]
             self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
 
-        super().save(*args, **kwargs)  
+        super().save(*args, **kwargs)
 
 class Pregunta(models.Model):
     TIPO_PREGUNTA_CHOICES = [
@@ -53,87 +75,155 @@ class Pregunta(models.Model):
         ('ESCRITA', 'Respuesta Escrita'),
     ]
 
-    # Vínculos y metadatos
     docente = models.ForeignKey(
-        'login.Docente', # Asumo esta ubicación para el modelo Docente
+        'login.Docente',
         on_delete=models.CASCADE,
         related_name='preguntas_creadas'
     )
-    id_etapa = models.ForeignKey(Etapa, on_delete=models.CASCADE)
 
-    # Contenido de la pregunta
+    id_etapa = models.ForeignKey(
+        Etapa,
+        on_delete=models.CASCADE,
+        related_name='preguntas'
+    )
+
     titulo = models.CharField("Título Pregunta", max_length=255)
     texto = models.TextField("Texto de la Pregunta")
+
+    # tipo de la pregunta dentro de la etapa
     tipo = models.CharField(
         max_length=10,
         choices=TIPO_PREGUNTA_CHOICES,
         verbose_name="Tipo de Pregunta"
     )
+
     puntuacion = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         default=1.00
     )
 
-    # Clave de Corrección (Solo para Respuesta Escrita)
     clave_respuesta_escrita = models.TextField(
         "Clave de Corrección / Palabras clave",
         null=True,
         blank=True,
-        help_text="Texto o palabras clave esperadas. Solo se usa si el tipo es 'Respuesta Escrita'."
+        help_text="Solo se usa si el tipo es 'Respuesta Escrita'."
     )
     retroalimentacion_general = models.TextField(
         "Retroalimentación General",
         null=True,
         blank=True,
-        help_text="Mensaje que se muestra al estudiante sin importar su respuesta."
+        help_text="Mensaje que se muestra al estudiante al finalizar."
     )
 
-    def _str_(self):
+    def __str__(self):
         return f"[{self.get_tipo_display()}] {self.titulo}"
-    
+
+class Exploracion(models.Model):
+    id_etapa = models.ForeignKey(
+        Etapa,
+        on_delete=models.CASCADE,
+        related_name='exploraciones'
+    )
+
+    titulo = models.CharField("Título de la Exploración", max_length=255)
+    instruccion = models.TextField(
+        "Texto / Pregunta de la Exploración",
+        help_text="Por ejemplo: 'Describe la exploración a realizar en esta zona'."
+    )
+
+    urlvideo = models.URLField("URL Video de la Exploración")
+
+    orden = models.PositiveSmallIntegerField(
+        "Orden",
+        help_text="Número de botón (1 a 6).",
+    )
+
+    retroalimentacion_general = models.TextField(
+        "Retroalimentación General",
+        null=True,
+        blank=True
+    )
+
     class Meta:
-        verbose_name_plural = "Preguntas"
+        verbose_name = "Exploración"
+        verbose_name_plural = "Exploraciones"
+        ordering = ['id_etapa', 'orden']
+        unique_together = ('id_etapa', 'orden')  # para que no tengas dos “PARTE EXP 1” en la misma etapa
+
+    def __str__(self):
+        return f"{self.id_etapa} - Parte {self.orden}: {self.titulo}"
+
+    def save(self, *args, **kwargs):
+        # MISMA lógica de conversión a embed
+        if self.urlvideo:
+            if "watch?v=" in self.urlvideo:
+                video_id = self.urlvideo.split("watch?v=")[1].split("&")[0]
+                self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
+            elif "youtu.be/" in self.urlvideo:
+                video_id = self.urlvideo.split("youtu.be/")[1].split("?")[0]
+                self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
+
+        super().save(*args, **kwargs)
 
 class OpcionMultiple(models.Model):
-    """
-    Representa una de las 4 alternativas posibles para una pregunta de Selección Múltiple.
-    """
     pregunta = models.ForeignKey(
         Pregunta,
         on_delete=models.CASCADE,
         related_name='opciones',
-        limit_choices_to={'tipo': 'MULTIPLE'}, # Opcional: filtro para el Admin/Forms
+        limit_choices_to={'tipo': 'MULTIPLE'},
         help_text="Pregunta a la que pertenece esta opción."
     )
+
     texto_opcion = models.CharField("Texto de la Opción", max_length=255)
     is_correct = models.BooleanField("Opción Correcta", default=False)
     retroalimentacion = models.TextField(
         "Retroalimentación Específica",
         blank=True,
         null=True,
-        help_text="Mensaje solo para si esta opción es seleccionada."
+        help_text="Mensaje solo si esta opción es seleccionada."
     )
 
-    def _str_(self):
+    def __str__(self):
         return self.texto_opcion
 
     class Meta:
         verbose_name = "Opción Múltiple"
         verbose_name_plural = "Opciones Múltiples"
-        # Garantiza que no haya dos opciones con el mismo texto para la misma pregunta
-        unique_together = ('pregunta', 'texto_opcion') 
+        unique_together = ('pregunta', 'texto_opcion')
+
+class EtapaCompletada(models.Model):
+    estudiante = models.ForeignKey('login.Estudiante', on_delete=models.CASCADE)
+    etapa = models.ForeignKey(Etapa, on_delete=models.CASCADE)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('estudiante', 'etapa')
+
+    def __str__(self):
+        return f"{self.estudiante} completó {self.etapa}"
 
 class Registro(models.Model):
-    """
-    Almacena la respuesta de un estudiante a una pregunta específica.
-    """
-    # Vínculos
-    id_pregunta = models.ForeignKey(Pregunta, on_delete=models.CASCADE)
-    id_estudiante = models.ForeignKey('login.Estudiante', on_delete=models.CASCADE) # Asumo esta ubicación
-    
-    # Metadatos
+    # Para Preguntas normales (etapa 1 y 3)
+    id_pregunta = models.ForeignKey(
+        Pregunta,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
+    # Para Exploraciones (etapa 2)
+    id_exploracion = models.ForeignKey(
+        'casospacientes.Exploracion',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
+    id_estudiante = models.ForeignKey('login.Estudiante', on_delete=models.CASCADE)
+
     fecha_envio = models.DateTimeField("Fecha de Envío", auto_now_add=True)
+
     calificacion_obtenida = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -142,20 +232,24 @@ class Registro(models.Model):
         help_text="Puntuación asignada a esta respuesta."
     )
 
-    # Contenido de la Respuesta del Estudiante (mutuamente excluyentes)
     opcion_seleccionada = models.ForeignKey(
         OpcionMultiple,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="ID de la OpcionMultiple seleccionada (si es tipo MÚLTIPLE)."
+        help_text="Solo se usa si es una pregunta de selección múltiple."
     )
+
     respuesta_texto_libre = models.TextField(
         "Respuesta Texto Libre",
         blank=True,
         null=True,
-        help_text="Texto escrito por el estudiante (si es tipo ESCRITA)."
+        help_text="Texto escrito por el estudiante (pregunta escrita o exploración)."
     )
 
-    def _str_(self):
-        return f"Registro de {self.id_estudiante.nombre} en {self.id_pregunta.titulo}"
+    def __str__(self):
+        if self.id_pregunta:
+            return f"Registro de {self.id_estudiante} en Pregunta {self.id_pregunta_id}"
+        if self.id_exploracion:
+            return f"Registro de {self.id_estudiante} en Exploración {self.id_exploracion_id}"
+        return f"Registro de {self.id_estudiante}"

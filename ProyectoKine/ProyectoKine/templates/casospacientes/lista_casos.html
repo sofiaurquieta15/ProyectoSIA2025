@@ -37,27 +37,58 @@
     <!-- ----------- TARJETAS ---------------- -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 justify-items-center">
 
-        {% for paciente in pacientes %}
+        {% for item in pacientes_data %}
+        {% with paciente=item.paciente completado=item.completado %}
 
         <div class="card-border w-full max-w-sm p-6 flex flex-col justify-between 
                     text-center shadow-2xl bg-white transition transform hover:scale-[1.03]">
 
             <div>
-                <h3 class="text-2xl font-extrabold text-gray-900 uppercase mb-4">
-                    {{ paciente.titulopaciente }}
+
+                <!-- NOMBRE -->
+                <h3 class="text-2xl font-extrabold text-gray-900">
+                    {{ paciente.nombre }}
                 </h3>
 
-                <p class="text-md text-gray-700 mb-4">
+                <!-- TÍTULO DEL CASO -->
+                <p class="text-lg font-bold text-gray-700 mt-1">
                     {{ paciente.tipo_caso }}
                 </p>
+
+                <!-- EDAD + SEXO -->
+                <p class="text-md text-gray-700 mt-4 flex items-center justify-center gap-2">
+                    {{ paciente.edad }} años —
+                    
+                    {% if paciente.sexo == "Masculino" %}
+                        <span class="text-blue-600 text-xl">♂</span>
+                    {% else %}
+                        <span class="text-pink-600 text-xl">♀</span>
+                    {% endif %}
+                    
+                    {{ paciente.sexo }}
+                </p>
+
+                <!-- OCUPACIÓN -->
+                <p class="text-md text-gray-700 mt-2">
+                    {{ paciente.ocupacion }}
+                </p>
+
+                <!-- ✔ COMPLETADO -->
+                {% if completado %}
+                <p class="mt-4 text-green-600 font-bold text-lg">
+                    ✔ Completado
+                </p>
+                {% endif %}
             </div>
 
+            <!-- BOTÓN ACCEDER -->
             <a href="{% url 'casos:detalle_paciente' paciente.id %}" 
-                class="btn-primary text-white font-bold py-3 w-3/4 mx-auto rounded-full">
+                class="btn-primary text-white font-bold py-3 w-3/4 mx-auto rounded-full mt-6">
                 ACCEDER
             </a>
         </div>
 
+        {% endwith %}
         {% empty %}
         <p class="text-xl text-gray-600 col-span-3 text-center">
             No hay casos para este curso.
