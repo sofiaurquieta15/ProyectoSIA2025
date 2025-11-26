@@ -50,6 +50,9 @@ class Etapa(models.Model):
         default="MULTIPLE"
     )
 
+    def __str__(self):
+        return f"{self.id_paciente}: Etapa {self.numetapa}"
+
     class Meta:
         verbose_name = "Etapa"
         verbose_name_plural = "Etapas"
