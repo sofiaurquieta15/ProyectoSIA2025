@@ -1,31 +1,37 @@
 {% extends 'base_site.html' %}
 {% load static %}
 
-{% block title %}Etapa {{ num_etapa }} - Exploraciones{% endblock %}
+{% block title %}Etapa {{ num_etapa }} - {{ etapa.nombreetapa }}{% endblock %}
 
 {% block nav_buttons %}
 <a href="{% url 'casos:detalle_paciente' paciente.id %}"
-   class="bg-white text-black px-4 py-2 rounded-full mr-4 font-semibold shadow">
+   class="bg-white text-blue-900 px-4 py-2 rounded-full mr-4 shadow font-semibold border-2 border-blue-900 hover:bg-gray-100 transition">
    ETAPAS
 </a>
 
 <a href="{% url 'login:logout' %}"
-   class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full shadow">
+   class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-full shadow font-bold transition">
    CERRAR SESIÓN
 </a>
 {% endblock %}
 
 {% block content %}
 
+<style>
+    /* Borde azul personalizado para los bloques */
+    .border-blue-custom {
+        border: 4px solid #1e3a8a; /* Azul oscuro institucional */
+    }
+</style>
+
 <div class="container mx-auto py-10 px-6">
 
-    <h2 class="text-4xl font-extrabold text-center mb-2">ETAPA {{ num_etapa }}</h2>
-    <p class="text-center text-xl mb-10">{{ etapa.nombreetapa }}</p>
+    <h2 class="text-4xl font-extrabold text-center mb-2 uppercase">ETAPA {{ num_etapa }}</h2>
+    <p class="text-center text-xl mb-10 text-blue-900 font-semibold">{{ etapa.nombreetapa }}</p>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        <!-- VIDEO -->
-        <div class="bg-black h-[350px] flex items-center justify-center rounded-lg shadow-lg">
+        <div class="bg-black h-[350px] flex items-center justify-center rounded-lg shadow-lg border-blue-custom overflow-hidden">
             <iframe id="video-exploracion"
                     class="w-full h-full"
                     src="{{ exploraciones.0.urlvideo }}"
@@ -34,17 +40,15 @@
             </iframe>
         </div>
 
-        <!-- PANEL DERECHO -->
-        <div class="p-6 rounded-lg shadow-md border bg-white">
+        <div class="p-6 rounded-lg shadow-md bg-white border-blue-custom">
 
-            <h3 class="text-3xl font-bold text-center mb-6">Exploraciones</h3>
+            <h3 class="text-3xl font-bold text-center mb-6 text-gray-800">Exploraciones</h3>
 
-            <!-- BOTONES -->
             <div class="grid grid-cols-3 gap-4 mb-6">
                 {% for exp in exploraciones %}
                 <button type="button"
-                        class="btn-exp px-4 py-2 rounded-lg font-bold shadow
-                               {% if forloop.first %} bg-blue-700 text-white {% else %} bg-gray-200 {% endif %}"
+                        class="btn-exp px-4 py-2 rounded-lg font-bold shadow transition
+                               {% if forloop.first %} bg-blue-900 text-white {% else %} bg-gray-200 text-gray-700 hover:bg-gray-300 {% endif %}"
                         data-exp-id="{{ exp.id }}"
                         data-video="{{ exp.urlvideo }}"
                         data-instruccion="{{ exp.instruccion|escapejs }}">
@@ -53,30 +57,27 @@
                 {% endfor %}
             </div>
 
-            <!-- INSTRUCCIÓN -->
-            <p id="texto-instruccion" class="text-gray-700 text-lg mb-4">
+            <p id="texto-instruccion" class="text-gray-800 text-lg mb-4 font-medium">
                 {{ exploraciones.0.instruccion }}
             </p>
 
             {% if completada %}
-                <!-- MODO SOLO LECTURA (ETAPA YA COMPLETADA) -->
-                <div id="box-respuesta" class="p-4 bg-green-50 border border-green-300 rounded-lg mb-4">
-                    <p class="font-semibold mb-1">Tu respuesta:</p>
-                    <p id="respuesta-texto"></p>
+                <div id="box-respuesta" class="p-4 bg-gray-100 border border-gray-300 rounded-lg mb-4">
+                    <p class="font-bold text-blue-900 mb-1">Tu respuesta:</p>
+                    <p id="respuesta-texto" class="text-gray-700"></p>
                 </div>
 
-                <div id="box-retro" class="p-4 bg-blue-50 border border-blue-300 rounded-lg">
-                    <p class="font-semibold mb-1">Retroalimentación del docente:</p>
-                    <p id="retro-texto"></p>
+                <div id="box-retro" class="p-4 bg-green-50 border border-green-300 rounded-lg">
+                    <p class="font-bold text-green-900 mb-1">Retroalimentación del docente:</p>
+                    <p id="retro-texto" class="text-green-800"></p>
                 </div>
             {% else %}
-                <!-- MODO EDICIÓN -->
                 <textarea id="respuesta-exp"
-                          class="w-full h-32 p-3 rounded-lg bg-gray-200"
+                          class="w-full h-32 p-3 rounded-lg bg-gray-100 border-2 border-gray-300 focus:border-blue-900 focus:ring-0 transition text-gray-800"
                           placeholder="Escribe tu respuesta aquí…"></textarea>
 
                 <button id="btn-guardar-exp"
-                        class="bg-blue-700 text-white font-bold px-6 py-2 rounded-full mt-6 block mx-auto shadow">
+                        class="bg-blue-900 hover:bg-blue-800 text-white font-bold px-6 py-3 rounded-full mt-6 block mx-auto shadow-lg transition uppercase">
                     GUARDAR RESPUESTAS
                 </button>
             {% endif %}
@@ -84,24 +85,22 @@
         </div>
     </div>
 
-    <!-- BOTÓN SIGUIENTE / FINAL -->
     <button id="btn-finalizar"
-            class="font-bold px-6 py-2 rounded-full mt-10 block mx-auto shadow
-                   {% if completada %} bg-green-700 text-white {% else %} bg-gray-400 text-white cursor-not-allowed {% endif %}"
+            class="font-bold px-8 py-3 rounded-full mt-10 block mx-auto shadow-lg uppercase transition
+                   {% if completada %} bg-green-700 text-white hover:bg-green-800 {% else %} bg-gray-400 text-white cursor-not-allowed {% endif %}"
             {% if not completada %} disabled {% endif %}>
         {% if ultima_etapa %} FINALIZAR CASO {% else %} SIGUIENTE ETAPA {% endif %}
     </button>
 
 </div>
 
-<!-- MODAL -->
 <div id="modal-feedback"
-     class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-    <div class="bg-white p-6 rounded-lg shadow-xl text-center w-96">
-        <h2 class="text-2xl font-bold mb-4" id="feedback-title"></h2>
-        <p id="feedback-text" class="mb-6"></p>
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 px-4">
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center w-full max-w-md border-blue-custom">
+        <h2 id="feedback-title" class="text-2xl font-bold mb-4"></h2>
+        <div id="feedback-text" class="mb-6 text-gray-700"></div>
         <button id="btn-modal-ok"
-                class="bg-blue-700 text-white px-4 py-2 rounded-full font-bold">
+                class="bg-blue-900 hover:bg-blue-800 text-white px-8 py-2 rounded-full font-bold shadow transition">
             Entendido
         </button>
     </div>
@@ -128,12 +127,28 @@ const textarea = document.getElementById("respuesta-exp");
 const btnGuardar = document.getElementById("btn-guardar-exp");
 const btnFinalizar = document.getElementById("btn-finalizar");
 
-/* MODAL */
-function abrirModal(t, txt){
-    document.getElementById("feedback-title").innerHTML = t;
-    document.getElementById("feedback-text").innerHTML = txt;
-    document.getElementById("modal-feedback").classList.remove("hidden");
+/* MODAL UNIFICADO */
+function mostrarModal(titulo, htmlMensaje, esExito) {
+    const modal = document.getElementById("modal-feedback");
+    const txtContainer = document.getElementById("feedback-text");
+    
+    document.getElementById("feedback-title").innerText = titulo;
+    txtContainer.innerHTML = htmlMensaje;
+
+    // Alinear texto según sea éxito o error
+    if (!esExito) {
+        document.getElementById("feedback-title").className = "text-2xl font-bold mb-4 text-red-700";
+        txtContainer.classList.add("text-left");
+        txtContainer.classList.remove("text-center");
+    } else {
+        document.getElementById("feedback-title").className = "text-2xl font-bold mb-4 text-green-700";
+        txtContainer.classList.remove("text-left");
+        txtContainer.classList.add("text-center");
+    }
+
+    modal.classList.remove("hidden");
 }
+
 document.getElementById("btn-modal-ok").onclick = () => {
     document.getElementById("modal-feedback").classList.add("hidden");
 };
@@ -170,34 +185,31 @@ function guardarTemporal(){
 }
 
 /* ==========================
-   CAMBIO DE EXPLORACIÓN
+   CAMBIO DE EXPLORACIÓN (TABS)
 ========================== */
 expButtons.forEach(btn => {
     btn.addEventListener("click", function(){
 
-        // Guardar lo que haya escrito en la exploración actual (modo edición)
         if (!completada) {
             guardarTemporal();
         }
 
-        // Estilos de botones
+        // Estilos de botones (Regreso al estilo gris/azul original)
         expButtons.forEach(b => {
-            b.classList.remove("bg-blue-700","text-white");
-            b.classList.add("bg-gray-200");
+            b.classList.remove("bg-blue-900","text-white");
+            b.classList.add("bg-gray-200", "text-gray-700");
         });
-        this.classList.remove("bg-gray-200");
-        this.classList.add("bg-blue-700","text-white");
+        this.classList.remove("bg-gray-200", "text-gray-700");
+        this.classList.add("bg-blue-900","text-white");
 
-        // Actualizar id + video + texto
+        // Actualizar datos
         expActualId = this.dataset.expId;
         document.getElementById("video-exploracion").src = this.dataset.video;
         document.getElementById("texto-instruccion").innerText = this.dataset.instruccion;
 
         if (completada) {
-            // Solo lectura: actualizar tarjetas
             actualizarTarjetas(expActualId);
         } else if (textarea) {
-            // Edición: cargar texto temporal
             textarea.value = respuestasTemp[expActualId] || "";
         }
     });
@@ -207,7 +219,6 @@ expButtons.forEach(btn => {
    CARGA INICIAL
 ========================== */
 if (completada && expActualId){
-    // Mostrar respuesta y retro de la primera exploración al entrar
     actualizarTarjetas(expActualId);
 }
 
@@ -219,24 +230,23 @@ if (btnGuardar && !completada){
 
         guardarTemporal();
 
-        // Verificar que todas las exploraciones tengan texto
         const faltan = expIds.filter(id => {
             const txt = respuestasTemp[id];
             return !txt || txt.trim() === "";
         });
 
         if (faltan.length > 0){
-            let msg = "Faltan respuestas en las siguientes exploraciones:<br><br>";
+            let lista = `<p class="mb-2">Te falta completar:</p><ul class="list-disc list-inside text-red-600 font-semibold">`;
             faltan.forEach(id => {
                 const btn = document.querySelector(`.btn-exp[data-exp-id="${id}"]`);
                 const nombre = btn ? btn.textContent.trim() : ("Exploración " + id);
-                msg += "• " + nombre + "<br>";
+                lista += `<li>${nombre}</li>`;
             });
-            abrirModal("⚠ Respuestas incompletas", msg);
+            lista += `</ul>`;
+            mostrarModal("⚠️ Faltan Respuestas", lista, false);
             return;
         }
 
-        // Enviar todas
         const promesas = expIds.map(id => {
             return fetch("{% url 'casos:guardar_exploracion' %}", {
                 method: "POST",
@@ -252,17 +262,24 @@ if (btnGuardar && !completada){
         Promise.all(promesas).then(results => {
             const error = results.find(r => !r.ok);
             if (error){
-                abrirModal("Error", error.error || "Ocurrió un problema al guardar.");
+                mostrarModal("Error", error.error || "Ocurrió un problema al guardar.", false);
                 return;
             }
 
-            abrirModal("✅ Respuestas guardadas",
-                       "Tus respuestas fueron registradas. Ahora puedes avanzar a la siguiente etapa.");
+            let msgExito = `
+                <div class="text-green-700 mb-4">
+                    <svg class="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    <p class="text-lg font-semibold">¡Respuestas registradas correctamente!</p>
+                </div>
+                <p class="text-gray-600">Ahora puedes avanzar a la etapa de Diagnóstico.</p>
+            `;
 
-            // Marcar en el front
+            mostrarModal("¡Excelente!", msgExito, true);
+
+            // Actualizar interfaz
             if (btnGuardar){
                 btnGuardar.disabled = true;
-                btnGuardar.classList.remove("bg-blue-700");
+                btnGuardar.classList.remove("bg-blue-900");
                 btnGuardar.classList.add("bg-gray-400","cursor-not-allowed");
                 btnGuardar.textContent = "RESPUESTAS GUARDADAS";
             }
@@ -270,8 +287,10 @@ if (btnGuardar && !completada){
             if (btnFinalizar){
                 btnFinalizar.disabled = false;
                 btnFinalizar.classList.remove("bg-gray-400","cursor-not-allowed");
-                btnFinalizar.classList.add("bg-green-700");
+                btnFinalizar.classList.add("bg-green-700", "hover:bg-green-800");
             }
+        }).catch(err => {
+            mostrarModal("Error", "Error de conexión.", false);
         });
     });
 }
@@ -283,10 +302,8 @@ btnFinalizar?.addEventListener("click", function(){
     if (this.disabled) return;
 
     if (ultima){
-        // Si esta fuera la última etapa (no es tu caso ahora)
         window.location.href = "{% url 'casos:detalle_paciente' paciente.id %}";
     } else {
-        // Ir a ETAPA 3
         window.location.href = siguienteURL;
     }
 });

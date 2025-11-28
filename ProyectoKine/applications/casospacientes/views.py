@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.db import transaction
 
 from applications.cursosdocente.models import Curso
 from applications.login.models import Estudiante
@@ -295,129 +296,55 @@ class VistaEtapa3View(TemplateView):
 
 @csrf_exempt
 def validar_respuesta_ajax(request):
-
     if request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
 
-    estudiante_id = request.POST.get("estudiante_id")
+    # 1. Leer JSON
+    try:
+        data = json.loads(request.body)
+        estudiante_id = data.get("estudiante_id")
+        
+        # Datos Etapa 1 (Lista de opciones)
+        respuestas_cliente = data.get("respuestas", [])
+        
+        # Datos Etapa 3 (Texto directo)
+        texto_respuesta_global = data.get("texto_respuesta", "").strip()
+        pregunta_id_global = data.get("pregunta_id")
+
+    except Exception as e:
+        return JsonResponse({"error": "JSON inválido"}, status=400)
+
+    # 2. Validar estudiante
     if not estudiante_id:
         return JsonResponse({"error": "Falta estudiante_id"}, status=400)
-
+    
     try:
         estudiante = Estudiante.objects.get(id=estudiante_id)
     except Estudiante.DoesNotExist:
         return JsonResponse({"error": "Estudiante no encontrado"}, status=404)
 
-    # ------------------------------------------
-    # ========== ETAPA 1 — SELECCIÓN MÚLTIPLE ==========
-    # ------------------------------------------
-    opcion_id = request.POST.get("opcion_id")
-    pregunta_id = request.POST.get("pregunta_id")
-
-    if opcion_id:
+    # ============================================================
+    # CASO A: ETAPA 3 (RESPUESTA ESCRITA)
+    # Detectamos si viene texto_respuesta y pregunta_id
+    # ============================================================
+    if texto_respuesta_global and pregunta_id_global:
         try:
-            pregunta = Pregunta.objects.get(id=pregunta_id)
-            opcion = OpcionMultiple.objects.get(id=opcion_id)
+            pregunta = Pregunta.objects.get(id=pregunta_id_global)
             etapa = pregunta.id_etapa
-        except:
-            return JsonResponse({"error": "Pregunta u opción no válida"}, status=404)
-
-        Registro.objects.create(
-            id_pregunta=pregunta,
-            id_estudiante=estudiante,
-            opcion_seleccionada=opcion,
-            calificacion_obtenida=1 if opcion.is_correct else 0
-        )
-
-        # Verificar si completó la etapa
-        total = Pregunta.objects.filter(id_etapa=etapa).count()
-        hechas = Registro.objects.filter(
-            id_estudiante=estudiante,
-            id_pregunta__id_etapa=etapa
-        ).values("id_pregunta").distinct().count()
-
-        if opcion.is_correct and hechas == total:
-            EtapaCompletada.objects.get_or_create(
-                estudiante=estudiante,
-                etapa=etapa
-            )
-
-        return JsonResponse({
-            "correcto": opcion.is_correct,
-            "retro": opcion.retroalimentacion or "",
-            "retroalimentacion_general": pregunta.retroalimentacion_general or ""
-        })
-
-    # ------------------------------------------
-    # ========== ETAPA 2 — EXPLORACIONES ==========
-    # ------------------------------------------
-    exploracion_id = request.POST.get("exploracion_id")
-    texto_resp = request.POST.get("texto_respuesta", "").strip()
-
-    if exploracion_id:
-        try:
-            exp = Exploracion.objects.get(id=exploracion_id)
-            etapa = exp.id_etapa
-        except:
-            return JsonResponse({"error": "Exploración no encontrada"}, status=404)
-
-        if texto_resp == "":
-            return JsonResponse({"error": "Debe escribir una respuesta."}, status=400)
-
-        # Guardar/actualizar respuesta
-        Registro.objects.update_or_create(
-            id_estudiante=estudiante,
-            id_exploracion=exp,
-            defaults={"respuesta_texto_libre": texto_resp}
-        )
-
-        # Verificar si completó TODAS las exploraciones
-        total = etapa.exploraciones.count()
-        hechas = Registro.objects.filter(
-            id_estudiante=estudiante,
-            id_exploracion__in=etapa.exploraciones.all()
-        ).count()
-
-        etapa_completa = (total == hechas)
-
-        if etapa_completa:
-            EtapaCompletada.objects.get_or_create(
-                estudiante=estudiante,
-                etapa=etapa
-            )
-
-        return JsonResponse({
-            "ok": True,
-            "etapa_completa": etapa_completa,
-            "msg": "Respuesta guardada correctamente."
-        })
-
-    # ------------------------------------------
-    # ========== ETAPA 3 — RESPUESTA ESCRITA FINAL ==========
-    # ------------------------------------------
-    texto_final = request.POST.get("texto_respuesta", "").strip()
-
-    if pregunta_id and texto_final:
-        try:
-            pregunta = Pregunta.objects.get(id=pregunta_id)
-            etapa = pregunta.id_etapa
-        except:
+        except Pregunta.DoesNotExist:
             return JsonResponse({"error": "Pregunta no encontrada"}, status=404)
 
-        # Guardar respuesta — SOLO 1 VEZ
-        registro, creado = Registro.objects.get_or_create(
+        # Guardar respuesta (update_or_create para evitar duplicados si reenvía)
+        registro, creado = Registro.objects.update_or_create(
             id_pregunta=pregunta,
             id_estudiante=estudiante,
-            defaults={"respuesta_texto_libre": texto_final}
+            defaults={
+                "respuesta_texto_libre": texto_respuesta_global,
+                "calificacion_obtenida": None  # Pendiente de revisión docente si aplica
+            }
         )
 
-        if not creado:
-            return JsonResponse({
-                "error": "La etapa ya fue respondida.",
-                "bloqueado": True
-            })
-
-        # Marcar etapa completada
+        # Marcar etapa completada automáticamente al enviar
         EtapaCompletada.objects.get_or_create(
             estudiante=estudiante,
             etapa=etapa
@@ -425,11 +352,88 @@ def validar_respuesta_ajax(request):
 
         return JsonResponse({
             "ok": True,
-            "retro": pregunta.retroalimentacion_general or ""
+            "retro": pregunta.retroalimentacion_general or "Diagnóstico registrado exitosamente.",
+            "msg": "Respuesta guardada."
         })
 
-    # Si nada coincide
-    return JsonResponse({"error": "Datos insuficientes"}, status=400)
+    # ============================================================
+    # CASO B: ETAPA 1 (SELECCIÓN MÚLTIPLE)
+    # Procesamos la lista de respuestas
+    # ============================================================
+    
+    errores = []
+    correctas_objs = []
+    etapa_actual = None
+
+    for item in respuestas_cliente:
+        p_id = item.get("pregunta_id")
+        op_id = item.get("opcion_id")
+        
+        # Si falta la opción, saltamos (esto evita que el código de Etapa 1 trate de procesar datos de Etapa 3)
+        if not op_id: 
+            continue
+
+        try:
+            pregunta = Pregunta.objects.get(id=p_id)
+            opcion = OpcionMultiple.objects.get(id=op_id)
+            
+            if not opcion.is_correct:
+                errores.append({
+                    "pregunta_id": p_id,
+                    "titulo_pregunta": pregunta.titulo,
+                    "opcion_texto": opcion.texto_opcion,
+                    "opcion_id": op_id,
+                    "retro": opcion.retroalimentacion or "Incorrecto. Intenta de nuevo."
+                })
+            else:
+                correctas_objs.append(Registro(
+                    id_pregunta=pregunta,
+                    id_estudiante=estudiante,
+                    opcion_seleccionada=opcion,
+                    calificacion_obtenida=1
+                ))
+                etapa_actual = pregunta.id_etapa
+
+        except (Pregunta.DoesNotExist, OpcionMultiple.DoesNotExist):
+            continue
+
+    # Respuesta Final Etapa 1
+    if len(errores) > 0:
+        return JsonResponse({
+            "ok": False,
+            "errores": errores,
+            "msg": "Hay respuestas incorrectas."
+        })
+    else:
+        # Si no hubo errores, pero tampoco respuestas válidas de selección múltiple
+        if not correctas_objs:
+             return JsonResponse({"error": "No se recibieron datos válidos para procesar."}, status=400)
+
+        # Recopilar retroalimentación positiva
+        aciertos_info = []
+        for reg in correctas_objs:
+            aciertos_info.append({
+                "pregunta_id": reg.id_pregunta.id,
+                "retro": reg.opcion_seleccionada.retroalimentacion or "¡Correcto!"
+            })
+
+        # Guardar en Transacción
+        with transaction.atomic():
+            # Borrar intentos previos de estas mismas preguntas
+            preguntas_ids = [r.id_pregunta.id for r in correctas_objs]
+            Registro.objects.filter(id_estudiante=estudiante, id_pregunta__id__in=preguntas_ids).delete()
+            
+            # Crear nuevos registros
+            Registro.objects.bulk_create(correctas_objs)
+            
+            if etapa_actual:
+                EtapaCompletada.objects.get_or_create(estudiante=estudiante, etapa=etapa_actual)
+
+        return JsonResponse({
+            "ok": True,
+            "aciertos": aciertos_info,
+            "msg": "Etapa completada."
+        })
 
 @csrf_exempt
 def guardar_exploracion(request):
@@ -479,4 +483,3 @@ def guardar_exploracion(request):
         "etapa_completa": etapa_completa,
         "msg": "Respuesta guardada correctamente."
     })
-

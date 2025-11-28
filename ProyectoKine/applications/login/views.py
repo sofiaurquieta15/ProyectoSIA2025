@@ -49,14 +49,22 @@ class LoginView(FormView):
         # Si credenciales válidas
         if usuario is not None:
             login(self.request, usuario)
+            self.request.session['usuario_id'] = usuario.id
             self.request.session['rol'] = self.rol
 
-            # 🔥 Guardar ID REAL del estudiante en sesión
+            # Obtener el parámetro 'next' de la URL para redirigir al usuario
+            next_url = self.request.GET.get('next', None)
+
+            # Redirigir según el rol
+            if next_url:
+                return redirect(next_url)  # Si next está presente, redirigir a esa URL
+
+            # Redirigir a menu estudiante para estudiantes
             if self.rol == 'Estudiante':
                 self.request.session['estudiante_id'] = usuario.id
-                return redirect(reverse('cursos:lista_cursos'))
+                return redirect('cursosestudiante:menu_estudiante')
 
-            # 🔥 Docente → vista de cursos docente
+            # Docente → vista de cursos docente
             if self.rol == 'Docente':
                 return redirect(reverse('cursos:listado_cursos'))
 

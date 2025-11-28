@@ -40,7 +40,6 @@ class Etapa(models.Model):
 
     nombreetapa = models.CharField("Nombre Etapa", max_length=100)
     numetapa = models.IntegerField("Número de Etapa")
-    urlvideo = models.URLField("URL Video")
     id_paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
 
     tipo_pregunta = models.CharField(
@@ -50,27 +49,12 @@ class Etapa(models.Model):
         default="MULTIPLE"
     )
 
-    def __str__(self):
-        return f"{self.id_paciente}: Etapa {self.numetapa}"
-
     class Meta:
         verbose_name = "Etapa"
         verbose_name_plural = "Etapas"
         ordering = ['id_paciente','numetapa']
         unique_together = ('id_paciente', 'numetapa')
 
-    def save(self, *args, **kwargs):
-        # Convertir URL tipo watch?v=
-        if "watch?v=" in self.urlvideo:
-            video_id = self.urlvideo.split("watch?v=")[1].split("&")[0]
-            self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
-
-        # Convertir URL tipo youtu.be
-        elif "youtu.be/" in self.urlvideo:
-            video_id = self.urlvideo.split("youtu.be/")[1].split("?")[0]
-            self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
-
-        super().save(*args, **kwargs)
 
 class Pregunta(models.Model):
     TIPO_PREGUNTA_CHOICES = [
@@ -91,20 +75,14 @@ class Pregunta(models.Model):
     )
 
     titulo = models.CharField("Título Pregunta", max_length=255)
-    texto = models.TextField("Texto de la Pregunta")
-
-    # tipo de la pregunta dentro de la etapa
     tipo = models.CharField(
         max_length=10,
         choices=TIPO_PREGUNTA_CHOICES,
         verbose_name="Tipo de Pregunta"
     )
 
-    puntuacion = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        default=1.00
-    )
+    # Nueva URL de video asociada a cada pregunta
+    urlvideo = models.URLField("URL Video de la Pregunta", null=True, blank=True)
 
     clave_respuesta_escrita = models.TextField(
         "Clave de Corrección / Palabras clave",
@@ -118,6 +96,19 @@ class Pregunta(models.Model):
         blank=True,
         help_text="Mensaje que se muestra al estudiante al finalizar."
     )
+
+    def save(self, *args, **kwargs):
+        # Convertir URL tipo watch?v=
+        if "watch?v=" in self.urlvideo:
+            video_id = self.urlvideo.split("watch?v=")[1].split("&")[0]
+            self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
+
+        # Convertir URL tipo youtu.be
+        elif "youtu.be/" in self.urlvideo:
+            video_id = self.urlvideo.split("youtu.be/")[1].split("?")[0]
+            self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"[{self.get_tipo_display()}] {self.titulo}"

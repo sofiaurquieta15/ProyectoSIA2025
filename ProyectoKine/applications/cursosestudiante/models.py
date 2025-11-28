@@ -1,9 +1,23 @@
 from django.db import models
-from applications.login.models import Estudiante
+from applications.login.models import Estudiante, Docente
 from applications.cursosdocente.models import Curso
 from applications.casospacientes.models import Registro
 
 # Create your models here.
+
+class Enrolamiento(models.Model):
+    estudiante = models.ForeignKey(Estudiante, on_delete=models.CASCADE, related_name='enrolamientos')
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='enrolamientos')
+    docente = models.ForeignKey(Docente, on_delete=models.CASCADE, related_name='enrolamientos')
+    fecha_inscripcion = models.DateTimeField("Fecha de Inscripción", auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.estudiante.nombre} - {self.curso.nombrecurso} - {self.docente.nombre_docente}"
+
+    class Meta:
+        verbose_name = "Enrolamiento"
+        verbose_name_plural = "Enrolamientos"
+        ordering = ['fecha_inscripcion']
 
 class Avance(models.Model):
     # Relacionado con el estudiante

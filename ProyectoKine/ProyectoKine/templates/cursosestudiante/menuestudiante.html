@@ -1,0 +1,64 @@
+{% extends 'base_site.html' %}
+{% load static %}
+
+{% block title %}Menú Estudiante - KineLearn{% endblock %}
+
+{% block nav_buttons %}
+    <a href="{% url 'login:logout' %}"
+       class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full shadow transition">
+        CERRAR SESIÓN
+    </a>
+{% endblock %}
+
+{% block content %}
+
+<style>
+    /* Borde azul institucional unificado */
+    .border-blue-custom {
+        border: 4px solid #1e3a8a; /* Azul oscuro */
+    }
+</style>
+
+<div class="flex-grow container mx-auto py-10 px-4 sm:px-6 lg:px-8 relative">
+
+    <div class="hidden lg:block absolute top-0 right-10 bg-blue-900 text-white font-semibold text-lg px-6 py-2 rounded-b-lg shadow-md border-t-0 border-x-2 border-b-2 border-blue-800">
+        Hola, {{ user.nombre }}
+    </div>
+
+    <div class="text-center mb-12 mt-8">
+        <h2 class="text-5xl font-extrabold text-gray-900 mb-2">
+            ¡Bienvenido a KineLearn!
+        </h2>
+        <p class="text-xl text-gray-600">Selecciona una opción para comenzar</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 justify-items-center max-w-4xl mx-auto">
+        
+        <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
+            <div>
+                <div class="text-6xl mb-4">📚</div> <h3 class="text-3xl font-extrabold text-gray-900 mb-2 uppercase">MIS CURSOS</h3>
+                <p class="text-gray-600">Accede a tus asignaturas y casos clínicos.</p>
+            </div>
+            
+            <a href="{% url 'cursosestudiante:lista_cursos' %}" 
+               class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">
+                ACCEDER
+            </a>
+        </div>
+
+        <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
+            <div>
+                <div class="text-6xl mb-4">📈</div> <h3 class="text-3xl font-extrabold text-gray-900 mb-2 uppercase">REVISAR AVANCES</h3>
+                <p class="text-gray-600">Consulta tu progreso en tiempo real.</p>
+            </div>
+
+            <a href="{% url 'cursosestudiante:ver_avances' %}" 
+                class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">
+                ACCEDER
+            </a>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

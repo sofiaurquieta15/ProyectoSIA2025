@@ -1,0 +1,186 @@
+{% extends 'base_site.html' %}
+{% load static %}
+
+{% block title %}Avances - KineLearn{% endblock %}
+
+{% block nav_buttons %}
+    <a href="{% url 'login:logout' %}" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full shadow">
+        CERRAR SESIÓN
+    </a>
+{% endblock %}
+
+{% block content %}
+<style>
+    /* Estilos específicos para este diseño */
+    .border-blue-custom {
+        border: 4px solid #1e3a8a; /* Azul oscuro */
+    }
+    
+    /* Gráfico Semicircular (Gauge) */
+    .gauge-container {
+        position: relative;
+        width: 150px;
+        height: 75px; /* Mitad del ancho */
+        overflow: hidden;
+        margin: 0 auto;
+    }
+    .gauge-bg, .gauge-fill {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        border: 15px solid #e5e7eb; /* Gris fondo */
+        border-bottom-color: transparent;
+        border-left-color: transparent;
+        border-right-color: transparent;
+        transform: rotate(-45deg); /* Ajuste para que sea arco superior */
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    .gauge-fill {
+        border-color: #1e3a8a; /* Azul progreso */
+        border-bottom-color: transparent !important;
+        border-right-color: transparent !important; /* Truco para semicírculo */
+        border-left-color: transparent !important;
+        /* La magia ocurre rotando esto con JS o inline styles */
+        z-index: 10;
+    }
+    
+    /* Pestañas de Pacientes */
+    .tab-btn.active {
+        background-color: #1e3a8a; /* Azul */
+        color: white;
+    }
+    .tab-btn {
+        background-color: #9ca3af; /* Gris */
+        color: white;
+        transition: all 0.3s;
+    }
+</style>
+
+<div class="container mx-auto py-10 px-4 max-w-5xl">
+
+    <div class="text-center mb-8">
+        <h2 class="text-4xl font-extrabold text-gray-900">AVANCES</h2>
+        <p class="text-gray-600 text-lg">Visualiza tu progreso</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg border-blue-custom p-6 mb-10">
+        <h3 class="text-center text-2xl font-bold text-gray-800 mb-2">GENERAL</h3>
+        <p class="text-center text-gray-600 mb-6">Haz completado un total de “{{ cursos_completados_count }}” Cursos</p>
+        
+        <div class="flex items-center justify-center space-x-4">
+            <div class="w-2/3 bg-gray-300 rounded-full h-8 overflow-hidden">
+                <div class="bg-blue-900 h-full rounded-full flex items-center justify-center text-white font-bold transition-all duration-1000"
+                     style="width: {{ porcentaje_general }}%">
+                </div>
+            </div>
+            <span class="text-4xl font-bold text-gray-800">{{ porcentaje_general }} %</span>
+        </div>
+    </div>
+
+    {% for dato in cursos_data %}
+    <div class="bg-white rounded-lg shadow-lg border-blue-custom p-0 mb-10 overflow-hidden flex flex-col md:flex-row">
+        
+        <div class="w-full md:w-1/3 p-6 border-b md:border-b-0 md:border-r border-gray-300 flex flex-col items-center justify-center bg-white">
+            <h3 class="text-2xl font-bold text-gray-900 mb-6">{{ dato.curso.nombrecurso }}</h3>
+            
+            <div class="relative w-40 h-24 flex justify-center">
+                <svg viewBox="0 0 100 50" class="w-full h-full">
+                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e5e7eb" stroke-width="10" />
+                    
+                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#1e3a8a" stroke-width="10"
+                          stroke-dasharray="126"
+                          class="transition-all duration-1000 ease-out"
+                          style="stroke-dashoffset: calc(126px - (126px * {{ dato.porcentaje }} / 100));" />
+                </svg>
+                <div class="absolute bottom-0 text-4xl font-bold text-gray-800 mb-2">
+                    {{ dato.porcentaje }} %
+                </div>
+            </div>
+
+            <a href="{% url 'casos:lista_casos' dato.curso.id %}" 
+               class="mt-6 bg-blue-900 hover:bg-blue-800 text-white font-bold py-2 px-8 rounded-full shadow uppercase text-sm">
+                Ver Detalle
+            </a>
+        </div>
+
+        <div class="w-full md:w-2/3 p-6 bg-gray-50">
+            
+            <div class="flex flex-wrap gap-3 mb-6 justify-center md:justify-start">
+                {% for p in dato.pacientes %}
+                <button onclick="cambiarPaciente('{{ p.id_interno }}', this)"
+                        class="tab-btn px-4 py-2 rounded-full font-bold text-sm uppercase shadow 
+                               {% if forloop.first %}active{% endif %}"
+                        data-group="group-{{ dato.curso.id }}">
+                    Paciente {{ p.indice }}: {{ p.nombre }}
+                </button>
+                {% empty %}
+                <p class="text-gray-500 italic">No hay pacientes asignados.</p>
+                {% endfor %}
+            </div>
+
+            <div class="bg-gray-200 rounded-lg p-6 text-center shadow-inner relative min-h-[180px] flex flex-col justify-center">
+                <h4 class="text-xl font-bold text-gray-800 mb-6">Progreso de Etapas</h4>
+
+                {% for p in dato.pacientes %}
+                <div id="{{ p.id_interno }}" 
+                     class="paciente-content {% if not forloop.first %}hidden{% endif %} group-{{ dato.curso.id }} flex flex-wrap justify-center gap-6">
+                    
+                    {% for etapa in p.etapas %}
+                    <div class="bg-white rounded-xl shadow p-4 w-32 flex flex-col items-center">
+                        <p class="font-bold text-blue-900 text-sm mb-1 uppercase">ETAPA {{ etapa.num }}</p>
+                        {% if etapa.completada %}
+                            <p class="text-green-500 font-bold text-sm">Completada</p>
+                        {% else %}
+                            <p class="text-gray-400 font-bold text-sm">Pendiente</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                </div>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="w-full mt-10 flex justify-center mb-10">
+        <a href="{% url 'cursosestudiante:menu_estudiante' %}" 
+           class="px-8 py-3 rounded-full bg-gray-300 text-gray-600 font-bold hover:bg-gray-400 transition uppercase shadow">
+            Volver al Menú
+        </a>
+    </div>
+
+</div>
+
+<script>
+function cambiarPaciente(targetId, btn) {
+    // 1. Identificar el grupo del curso (para no afectar otros cursos)
+    const groupClass = btn.getAttribute('data-group');
+    
+    // 2. Ocultar todos los contenidos de pacientes de este curso
+    const contenidos = document.getElementsByClassName(groupClass);
+    for (let div of contenidos) {
+        div.classList.add('hidden');
+    }
+
+    // 3. Mostrar el contenido seleccionado
+    document.getElementById(targetId).classList.remove('hidden');
+
+    // 4. Actualizar estado visual de los botones (dentro del mismo contenedor padre)
+    const botones = btn.parentElement.querySelectorAll('.tab-btn');
+    botones.forEach(b => {
+        b.classList.remove('active');
+        b.classList.remove('bg-blue-900'); // Quitamos azul
+        b.classList.add('bg-gray-400');    // Ponemos gris
+    });
+
+    // Activar el botón clickeado
+    btn.classList.add('active');
+    btn.classList.remove('bg-gray-400');
+}
+</script>
+
+{% endblock %}

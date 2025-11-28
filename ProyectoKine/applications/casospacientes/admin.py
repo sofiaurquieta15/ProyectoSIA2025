@@ -12,13 +12,13 @@ class PacienteAdmin(admin.ModelAdmin):
     list_select_related = ('tipo_caso','id_curso')
 
 class EtapaAdmin(admin.ModelAdmin):
-    list_display = ('nombreetapa', 'numetapa', 'id_paciente', 'urlvideo','tipo_pregunta')
+    list_display = ('nombreetapa', 'numetapa', 'id_paciente','tipo_pregunta')
     list_filter = ('id_paciente','tipo_pregunta')
     search_fields = ('nombreetapa',) 
     list_select_related = ('id_paciente',)
 
 class PreguntaAdmin(admin.ModelAdmin):
-    list_display = ('titulo','docente','id_etapa','tipo')
+    list_display = ('titulo','docente','id_etapa', 'urlvideo', 'tipo')
     list_filter = ('tipo','docente__nombre_docente')
     search_fields = ('docente__nombre_docente',)
     list_select_related = ('docente','id_etapa')

@@ -10,4 +10,5 @@ class AvanceAdmin(admin.ModelAdmin):
     list_select_related = ('id_estudiante','id_curso')
 
 admin.site.register(Avance,AvanceAdmin)
+admin.site.register(Enrolamiento)
 
