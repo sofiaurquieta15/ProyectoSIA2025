@@ -55,6 +55,9 @@ class Etapa(models.Model):
         ordering = ['id_paciente','numetapa']
         unique_together = ('id_paciente', 'numetapa')
 
+    def __str__(self):
+        return self.nombreetapa
+
 
 class Pregunta(models.Model):
     TIPO_PREGUNTA_CHOICES = [
@@ -111,7 +114,12 @@ class Pregunta(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"[{self.get_tipo_display()}] {self.titulo}"
+        # CAMBIO AQUÍ: Ahora muestra [NOMBRE PACIENTE] Título de pregunta
+        paciente_nombre = "Sin Paciente"
+        if self.id_etapa and self.id_etapa.id_paciente:
+            paciente_nombre = self.id_etapa.id_paciente.nombre
+            
+        return f"[{paciente_nombre}] {self.titulo}"
 
 class Exploracion(models.Model):
     id_etapa = models.ForeignKey(
