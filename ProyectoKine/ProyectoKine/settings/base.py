@@ -94,10 +94,10 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 JAZZMIN_SETTINGS={
-    "site_title": "KineSmart Admin",
-    "site_header": "KineSmart Dashboard",
-    "welcome_sign": "Bienvenido KineSmart",
-    "site_brand": "KineSmart",
+    "site_title": "KineLearn Admin",
+    "site_header": "KineLearn Dashboard",
+    "welcome_sign": "Bienvenido a KineLearn",
+    "site_brand": "KineLearn",
     "site_logo": "images/logo_UCN.png",
     "site_icon": "images/logo_UCN.png",
     "custom_css": "css/admin_custom.css",
@@ -112,18 +112,48 @@ JAZZMIN_SETTINGS={
         "cursosdocente.curso": "fas fa-book",
 
         # === APP casospacientes (tus modelos de casos/pacientes/etapas/preguntas/etc.) ===
+        "casospacientes.etapacompletada":"fas fa-check-circle",
         "casospacientes.tipocaso": "fas fa-tags",
         "casospacientes.paciente": "fas fa-user-injured",
         "casospacientes.etapa": "fas fa-layer-group",
         "casospacientes.pregunta": "fas fa-question-circle",
         "casospacientes.opcionmultiple": "fas fa-check-square",
         "casospacientes.registro": "fas fa-clipboard-check",
+        "casospacientes.exploracion":"fas fa-search-plus",
 
         # === APP cursosestudiante ===
         "cursosestudiante.avance": "fas fa-tasks",
+        "cursosestudiante.enrolamiento": "fas fa-user-plus",
 
         # === Django interno ===
         "auth.user": "fas fa-user-cog",
         "auth.group": "fas fa-users-cog",
     },
+
+    "order_with_respect_to": [
+
+        # Bloque 1: Login
+        "login.docente",
+        "login.estudiante",
+
+        # Bloque 2: CursosDocente
+        "cursosdocente.curso",
+
+        # Bloque 3: CasosPacientes
+        "casospacientes.tipocaso",
+        "casospacientes.paciente",
+        "casospacientes.etapa",
+        "casospacientes.pregunta",
+        "casospacientes.exploracion",
+        "casospacientes.opcionmultiple",
+        "casospacientes.registro",
+        "casospacientes.etapacompletada",
+
+        # Bloque 4: CursosEstudiante
+        "cursosestudiante.enrolamiento",
+        "cursosestudiante.avance",
+
+        # Bloque 4: autenticación
+        "auth",
+    ]
 }
