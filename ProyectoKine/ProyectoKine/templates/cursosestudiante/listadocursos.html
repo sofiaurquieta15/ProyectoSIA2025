@@ -4,10 +4,21 @@
 {# Sobreescribimos el título específico de la página #}
 {% block title %}Cursos Disponibles - KineLearn{% endblock %}
 
-{# Reemplazamos el contenido de la navegación (nav_buttons) con el enlace de cerrar sesión #}
 {% block nav_buttons %}
-    <a href="{% url 'login:logout' %}"
-        class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full shadow">
+    <a href="{% url 'cursosestudiante:lista_cursos' %}"
+       class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
+        MIS CURSOS
+    </a>
+    <a href="{% url 'cursosestudiante:ver_avances' %}"
+       class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
+        MI AVANCE
+    </a>
+    <a href="{% url 'cursosestudiante:menu_estudiante' %}"
+       class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
+        MENÚ PRINCIPAL
+    </a>
+     <a href="{% url 'login:logout' %}"
+       class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-full shadow transition">
         CERRAR SESIÓN
     </a>
 {% endblock %}
