@@ -94,6 +94,7 @@ def RevisarAvancesView(request):
                 'id_interno': f"c{curso.id}-p{paciente.id}", # ID único para los tabs JS
                 'indice': index + 1, # Para mostrar "Paciente 1", "Paciente 2"
                 'nombre': paciente.nombre,
+                'id': paciente.id,
                 'etapas': etapas_data
             })
 

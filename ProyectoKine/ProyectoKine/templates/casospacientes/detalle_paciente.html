@@ -4,9 +4,17 @@
 {% block title %}{{ paciente.nombre }} - KineLearn{% endblock %}
 
 {% block nav_buttons %}
+<a href="{% url 'cursosestudiante:ver_avances' %}"
+    class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
+    MI AVANCE
+</a>
+<a href="{% url 'cursosestudiante:lista_cursos' %}"
+    class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
+    MIS CURSOS
+</a>
 <a href="{% url 'casos:lista_casos' paciente.id_curso.id %}"
-   class="bg-white text-blue-900 px-4 py-2 rounded-full mr-4 shadow font-semibold border-2 border-blue-900 hover:bg-gray-100 transition">
-   LISTA DE CASOS
+    class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
+    PACIENTES
 </a>
 
 <a href="{% url 'login:logout' %}"

@@ -8,15 +8,7 @@
        class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
         MIS CURSOS
     </a>
-    <a href="{% url 'cursosestudiante:ver_avances' %}"
-       class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
-        MI AVANCE
-    </a>
-    <a href="{% url 'cursosestudiante:menu_estudiante' %}"
-       class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
-        MENÚ PRINCIPAL
-    </a>
-     <a href="{% url 'login:logout' %}"
+    <a href="{% url 'login:logout' %}"
        class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-full shadow transition">
         CERRAR SESIÓN
     </a>
@@ -141,13 +133,39 @@
                      class="paciente-content {% if not forloop.first %}hidden{% endif %} group-{{ dato.curso.id }} flex flex-wrap justify-center gap-6">
                     
                     {% for etapa in p.etapas %}
-                    <div class="bg-white rounded-xl shadow p-4 w-32 flex flex-col items-center">
-                        <p class="font-bold text-blue-900 text-sm mb-1 uppercase">ETAPA {{ etapa.num }}</p>
+                    <div class="bg-white rounded-xl shadow p-3 w-32 flex flex-col items-center justify-center gap-3 min-h-[130px] border-blue-custom border-2 transition hover:scale-105">
+                        
+                        <div class="text-center">
+                            <p class="font-bold text-blue-900 text-sm mb-1 uppercase">ETAPA {{ etapa.num }}</p>
+                            
+                            {% if etapa.completada %}
+                                <p class="text-green-600 font-bold text-[10px] uppercase leading-tight">Completada</p>
+                            {% else %}
+                                <p class="text-gray-400 font-bold text-[10px] uppercase leading-tight">Pendiente</p>
+                            {% endif %}
+                        </div>
+
                         {% if etapa.completada %}
-                            <p class="text-green-500 font-bold text-sm">Completada</p>
-                        {% else %}
-                            <p class="text-gray-400 font-bold text-sm">Pendiente</p>
+                            <div class="w-full">
+                                {% if etapa.num == 1 %}
+                                    <a href="{% url 'casos:detalle_etapa' p.id etapa.num %}" 
+                                       class="block w-full bg-blue-900 hover:bg-blue-800 text-white text-[10px] font-bold py-1.5 px-2 rounded-full text-center transition uppercase shadow-sm">
+                                        Revisar
+                                    </a>
+                                {% elif etapa.num == 2 %}
+                                    <a href="{% url 'casos:detalle_etapa2' p.id etapa.num %}" 
+                                       class="block w-full bg-blue-900 hover:bg-blue-800 text-white text-[10px] font-bold py-1.5 px-2 rounded-full text-center transition uppercase shadow-sm">
+                                        Revisar
+                                    </a>
+                                {% elif etapa.num == 3 %}
+                                    <a href="{% url 'casos:detalle_etapa3' p.id etapa.num %}" 
+                                       class="block w-full bg-blue-900 hover:bg-blue-800 text-white text-[10px] font-bold py-1.5 px-2 rounded-full text-center transition uppercase shadow-sm">
+                                        Revisar
+                                    </a>
+                                {% endif %}
+                            </div>
                         {% endif %}
+
                     </div>
                     {% endfor %}
 
