@@ -1,0 +1,316 @@
+{% extends 'base_site.html' %}
+{% load static %}
+
+{% block title %}Solicitar Revisión{% endblock %}
+
+{% block nav_buttons %}
+    <a href="{% url 'cursosestudiante:ver_avances' %}"
+       class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
+        MI AVANCE
+    </a>
+    <a href="{% url 'cursosestudiante:lista_cursos' %}"
+       class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
+        MIS CURSOS
+    </a>
+    <a href="{% url 'cursosestudiante:estado_solicitudes' %}"
+       id="btn-top-estado"
+       class="hidden text-white font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm transition"
+       style="background-color: #2e7d32;">
+       ESTADO SOLICITUDES
+    </a>
+
+    <a href="{% url 'login:logout' %}"
+       class="bg-red-600 text-white font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+       CERRAR SESIÓN
+    </a>
+{% endblock %}
+
+{% block content %}
+<style>
+    .border-blue-custom { border: 4px solid #1e3a8a; }
+    .btn-blue-custom { background-color: #1e3a8a; color: white; }
+    .btn-blue-custom:hover { background-color: #1e40af; }
+    
+    .select-custom {
+        background-color: #9ca3af;
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        text-align-last: center;
+        border-radius: 9999px;
+        padding: 10px 16px;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1em top 50%;
+        background-size: .8em auto;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    .select-active {
+        background-color: #1e3a8a !important;
+    }
+</style>
+
+<div class="container mx-auto py-10 px-4 max-w-4xl text-center">
+    
+    <h2 class="text-3xl font-bold text-gray-900 mb-2">SOLICITAR REVISIÓN</h2>
+    <p class="text-gray-600 mb-10 text-lg">Solicita revisión y recibe una retroalimentación</p>
+
+    <div id="contenedor-consultas" class="space-y-8"></div>
+
+    <div id="btn-container" class="mt-16 flex flex-col md:flex-row justify-center items-center gap-6">
+        
+        <button type="button" onclick="abrirModalSeleccion()" 
+                id="btn-add-main"
+                class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-full shadow-lg transition text-xl uppercase w-full md:w-auto">
+            AÑADIR UNA CONSULTA
+        </button>
+
+        <a href="{% url 'cursosestudiante:estado_solicitudes' %}"
+           id="btn-bottom-estado"
+           class="text-white font-bold py-3 px-8 rounded-full shadow-lg transition text-xl uppercase w-full md:w-auto text-center"
+           style="background-color: #2e7d32;">
+           ESTADO SOLICITUDES
+        </a>
+
+    </div>
+
+</div>
+
+<div id="modal-seleccion" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white p-8 rounded-xl shadow-2xl text-center w-96 border-blue-custom">
+        <h3 class="text-2xl font-bold text-gray-900 mb-6">Elige la etapa a consultar</h3>
+        <div class="space-y-4">
+            <button onclick="crearTarjeta(2)" class="block w-full bg-gray-400 hover:bg-blue-900 text-white font-bold py-3 rounded-full uppercase shadow transition">EXPLORACIÓN</button>
+            <button onclick="crearTarjeta(3)" class="block w-full bg-gray-400 hover:bg-blue-900 text-white font-bold py-3 rounded-full uppercase shadow transition">DIAGNÓSTICO</button>
+        </div>
+        <button onclick="cerrarModal()" class="mt-6 text-gray-500 hover:text-gray-700 underline text-sm">Cancelar</button>
+    </div>
+</div>
+
+<div id="modal-feedback" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center w-96 max-w-md border-blue-custom">
+        <h2 id="fb-titulo" class="text-2xl font-bold mb-4"></h2>
+        <p id="fb-texto" class="mb-6 text-gray-700"></p>
+        <button onclick="document.getElementById('modal-feedback').classList.add('hidden')" class="bg-blue-900 text-white px-6 py-2 rounded-full font-bold shadow">Entendido</button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let dataDB = [];
+    try {
+        const rawData = '{{ data_json|default:"[]"|escapejs }}';
+        if (rawData) { dataDB = JSON.parse(rawData); }
+    } catch (e) { console.error(e); dataDB = []; }
+
+    window.abrirModalSeleccion = function() {
+        if (!dataDB || dataDB.length === 0) {
+            mostrarFeedback("Sin datos", "No tienes cursos con etapas completadas para solicitar revisión.", false);
+            return;
+        }
+        document.getElementById('modal-seleccion').classList.remove('hidden');
+    };
+
+    window.cerrarModal = function() { document.getElementById('modal-seleccion').classList.add('hidden'); };
+
+    window.mostrarFeedback = function(titulo, msg, exito) {
+        const t = document.getElementById('fb-titulo');
+        t.innerText = titulo;
+        t.className = exito ? "text-2xl font-bold mb-4 text-green-700" : "text-2xl font-bold mb-4 text-red-700";
+        document.getElementById('fb-texto').innerText = msg;
+        document.getElementById('modal-feedback').classList.remove('hidden');
+    };
+
+    window.actualizarColorSelect = function(selectElement) {
+        if (selectElement.value !== "") { selectElement.classList.add('select-active'); }
+        else { selectElement.classList.remove('select-active'); }
+    };
+
+    // === LÓGICA DE MOVIMIENTO DE BOTONES ===
+    function moverBotonEstado() {
+        const btnBottom = document.getElementById('btn-bottom-estado');
+        const btnTop = document.getElementById('btn-top-estado');
+        const btnAdd = document.getElementById('btn-add-main');
+
+        if (btnBottom) btnBottom.classList.add('hidden');
+        if (btnTop) btnTop.classList.remove('hidden');
+        if (btnAdd) btnAdd.innerText = "AÑADIR OTRA CONSULTA";
+    }
+
+    // === NUEVA FUNCIÓN: RESTAURAR BOTONES SI NO HAY TARJETAS ===
+    function verificarYRestaurarBotones() {
+        const container = document.getElementById('contenedor-consultas');
+        // Si el contenedor no tiene hijos (tarjetas vacías), restauramos
+        if (container.children.length === 0) {
+            const btnBottom = document.getElementById('btn-bottom-estado');
+            const btnTop = document.getElementById('btn-top-estado');
+            const btnAdd = document.getElementById('btn-add-main');
+
+            if (btnBottom) btnBottom.classList.remove('hidden'); // Mostrar abajo
+            if (btnTop) btnTop.classList.add('hidden');          // Ocultar arriba
+            if (btnAdd) btnAdd.innerText = "AÑADIR UNA CONSULTA"; // Resetear texto
+        }
+    }
+
+    // === CREAR TARJETA ===
+    window.crearTarjeta = function(tipoEtapa) {
+        if (document.querySelector(`.open-card-${tipoEtapa}`)) {
+            cerrarModal();
+            let nombreTipo = (tipoEtapa === 2) ? "Exploración" : "Diagnóstico";
+            mostrarFeedback("Atención", `Ya tienes un formulario de ${nombreTipo} abierto. Complétalo o ciérralo antes de abrir otro.`, false);
+            return;
+        }
+
+        cerrarModal();
+        
+        // ACTIVAR MODO "FORMULARIOS ABIERTOS"
+        moverBotonEstado();
+
+        const container = document.getElementById('contenedor-consultas');
+        const cardId = "card-" + Date.now();
+        let displayExploracion = (tipoEtapa === 2) ? "flex" : "none";
+        let tituloEtapa = (tipoEtapa === 2) ? "Solicitud de Etapa 2: Exploración" : "Solicitud de Etapa 3: Diagnóstico";
+
+        let html = `
+        <div id="${cardId}" class="open-card-${tipoEtapa} bg-white p-8 rounded-lg border-blue-custom shadow-lg relative text-left max-w-3xl mx-auto transition-all duration-500 fade-in border-4 border-[#1e3a8a]">
+            <button onclick="removerTarjeta('${cardId}')" class="absolute top-2 right-4 text-red-500 font-bold text-xl hover:text-red-700">&times;</button>
+            
+            <h3 class="text-2xl font-extrabold text-blue-900 mb-8 text-center uppercase tracking-wide border-b-2 border-gray-100 pb-4">${tituloEtapa}</h3>
+
+            <div class="flex flex-col gap-4 mb-6 px-4 md:px-10">
+                <div class="flex flex-col md:flex-row items-center gap-4">
+                    <div class="font-bold text-xl text-gray-900 md:text-right md:w-[140px] flex-shrink-0">Curso</div>
+                    <div class="w-full">
+                        <select id="curso-${cardId}" onchange="cargarPacientes('${cardId}', ${tipoEtapa}); actualizarColorSelect(this);" class="w-full select-custom"><option value="">Elige un curso</option></select>
+                    </div>
+                </div>
+                <div class="flex flex-col md:flex-row items-center gap-4">
+                    <div class="font-bold text-xl text-gray-900 md:text-right md:w-[140px] flex-shrink-0">Paciente</div>
+                    <div class="w-full">
+                        <select id="paciente-${cardId}" onchange="validarYcargar('${cardId}', ${tipoEtapa}, this)" class="w-full select-custom" disabled><option value="">Elige un paciente del curso</option></select>
+                    </div>
+                </div>
+                <div class="flex flex-col md:flex-row items-center gap-4" style="display:${displayExploracion}">
+                    <div class="font-bold text-xl text-gray-900 md:text-right md:w-[140px] flex-shrink-0">Exploración</div>
+                    <div class="w-full">
+                        <select id="exploracion-${cardId}" onchange="actualizarColorSelect(this)" class="w-full select-custom" disabled><option value="">Selecciona exploración</option></select>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="text-center text-xl font-bold text-gray-800 mb-4 mt-8">Ingresa tu motivo de revisión</h3>
+            <div class="flex justify-center mb-8">
+                <textarea id="motivo-${cardId}" class="w-full md:w-3/4 p-4 bg-gray-200 rounded-lg resize-none h-32 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-900 border border-gray-300" placeholder="Describe tu consulta aquí..."></textarea>
+            </div>
+
+            <div class="text-center">
+                <button onclick="enviarSolicitud('${cardId}', ${tipoEtapa})" class="bg-gray-400 hover:bg-blue-900 text-white font-bold py-3 px-12 rounded-full text-xl uppercase transition shadow-md">ENVIAR</button>
+            </div>
+        </div>`;
+
+        container.insertAdjacentHTML('beforeend', html);
+        llenarCursos(cardId, tipoEtapa);
+    };
+
+    // Función para remover tarjeta y VERIFICAR SI DEBE RESTAURAR BOTONES
+    window.removerTarjeta = function(cardId) {
+        const card = document.getElementById(cardId);
+        if (card) {
+            card.remove();
+        }
+        // Verificar si quedaron tarjetas, si no, restaurar
+        verificarYRestaurarBotones();
+    };
+
+    function llenarCursos(cardId, tipoEtapa) {
+        const cursoSelect = document.getElementById(`curso-${cardId}`);
+        dataDB.forEach(curso => {
+            if(curso.pacientes.some(p => p.etapas_completadas.includes(tipoEtapa))) {
+                let opt = document.createElement('option'); opt.value = curso.id; opt.innerText = curso.nombre;
+                cursoSelect.appendChild(opt);
+            }
+        });
+    }
+
+    window.validarYcargar = function(cardId, tipoEtapa, selectElement) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        if (tipoEtapa === 3 && selectedOption.dataset.tienePendiente === "true") {
+            mostrarFeedback("Solicitud Existente", "Ya has enviado una solicitud, espere la respuesta del docente.", false);
+            selectElement.value = ""; actualizarColorSelect(selectElement); return;
+        }
+        actualizarColorSelect(selectElement);
+        cargarExploraciones(cardId, tipoEtapa);
+    };
+
+    window.cargarPacientes = function(cardId, tipoEtapa) {
+        const cursoId = parseInt(document.getElementById(`curso-${cardId}`).value);
+        const pacienteSelect = document.getElementById(`paciente-${cardId}`);
+        const exploracionSelect = document.getElementById(`exploracion-${cardId}`);
+
+        pacienteSelect.innerHTML = '<option value="">Elige un paciente del curso</option>';
+        pacienteSelect.classList.remove('select-active'); pacienteSelect.disabled = true;
+        if(exploracionSelect) { exploracionSelect.innerHTML = '<option value="">Selecciona exploración</option>'; exploracionSelect.classList.remove('select-active'); exploracionSelect.disabled = true; }
+
+        if(!cursoId) return;
+        const cursoData = dataDB.find(c => c.id === cursoId);
+        if(cursoData) {
+            const pacientesValidos = cursoData.pacientes.filter(p => p.etapas_completadas.includes(tipoEtapa));
+            pacientesValidos.forEach(p => {
+                let opt = document.createElement('option'); opt.value = p.id; opt.innerText = p.nombre;
+                if(tipoEtapa === 3) opt.dataset.tienePendiente = p.tiene_diagnostico_pendiente;
+                if(tipoEtapa === 2) opt.dataset.exploraciones = JSON.stringify(p.exploraciones);
+                pacienteSelect.appendChild(opt);
+            });
+            pacienteSelect.disabled = false;
+        }
+    };
+
+    window.cargarExploraciones = function(cardId, tipoEtapa) {
+        if(tipoEtapa !== 2) return; 
+        const pacienteSelect = document.getElementById(`paciente-${cardId}`);
+        const exploracionSelect = document.getElementById(`exploracion-${cardId}`);
+        exploracionSelect.innerHTML = '<option value="">Selecciona exploración</option>';
+        exploracionSelect.classList.remove('select-active'); exploracionSelect.disabled = true;
+
+        const selectedOpt = pacienteSelect.options[pacienteSelect.selectedIndex];
+        if(selectedOpt.value && selectedOpt.dataset.exploraciones) {
+            const expls = JSON.parse(selectedOpt.dataset.exploraciones);
+            expls.forEach(e => {
+                let opt = document.createElement('option'); opt.value = e.id; opt.innerText = e.titulo;
+                exploracionSelect.appendChild(opt);
+            });
+            exploracionSelect.disabled = false;
+        }
+    };
+
+    window.enviarSolicitud = function(cardId, tipoEtapa) {
+        const cursoId = document.getElementById(`curso-${cardId}`).value;
+        const pacienteId = document.getElementById(`paciente-${cardId}`).value;
+        const motivo = document.getElementById(`motivo-${cardId}`).value.trim();
+        let exploracionId = null;
+
+        if(tipoEtapa === 2) {
+            exploracionId = document.getElementById(`exploracion-${cardId}`).value;
+            if(!exploracionId) { mostrarFeedback("Faltan datos", "Selecciona una exploración.", false); return; }
+        }
+        if(!cursoId || !pacienteId || !motivo) { mostrarFeedback("Faltan datos", "Completa todos los campos.", false); return; }
+
+        fetch("{% url 'cursosestudiante:crear_solicitud_ajax' %}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
+            body: JSON.stringify({ curso_id: cursoId, paciente_id: pacienteId, etapa_num: tipoEtapa, exploracion_id: exploracionId, motivo: motivo })
+        })
+        .then(r => r.json()).then(data => {
+            if(data.ok) {
+                mostrarFeedback("Solicitud Enviada", "Consulta enviada correctamente.", true);
+                // Removemos tarjeta y VERIFICAMOS SI DEBE RESTAURAR
+                removerTarjeta(cardId);
+            } else { mostrarFeedback("Error", data.error, false); }
+        }).catch(e => mostrarFeedback("Error", "Error de conexión", false));
+    };
+</script>
+{% endblock %}

@@ -111,118 +111,6 @@ class ExploracionForm(forms.ModelForm):
 
         return cleaned_data
 
-# --- FORMULARIO OPCIÓN MÚLTIPLE CON TODAS LAS REGLAS ---
-class OpcionMultipleForm(forms.ModelForm):
-    paciente_filtro = forms.ModelChoiceField(
-        queryset=Paciente.objects.all(),
-        label="1. Filtrar por Paciente",
-        required=False,
-        help_text="Selecciona un paciente para ver SOLO sus preguntas abajo."
-    )
-
-    class Meta:
-        model = OpcionMultiple
-        fields = '__all__'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        
-        # 1. Crear JSON de Preguntas para el JS
-        preguntas = Pregunta.objects.filter(tipo='MULTIPLE').select_related('id_etapa__id_paciente')
-        data_map = {}
-        
-        for p in preguntas:
-            pid = str(p.id_etapa.id_paciente.id)
-            if pid not in data_map:
-                data_map[pid] = []
-            titulo_safe = str(p).replace('"', '\\"')
-            data_map[pid].append({'id': str(p.id), 'text': titulo_safe})
-        
-        json_data = json.dumps(data_map)
-
-        # 2. Pre-seleccionar paciente si es edición
-        current_pregunta_id = None
-        if self.instance.pk and self.instance.pregunta:
-            self.fields['paciente_filtro'].initial = self.instance.pregunta.id_etapa.id_paciente
-            current_pregunta_id = str(self.instance.pregunta.id)
-
-        # 3. Script JS Robusto
-        script = f"""
-        <script type="text/javascript">
-            (function($) {{
-                var preguntasMap = {json_data};
-                var currentPregunta = "{current_pregunta_id if current_pregunta_id else ''}";
-
-                $(document).ready(function() {{
-                    var $pacienteSelect = $('#id_paciente_filtro');
-                    var $preguntaSelect = $('#id_pregunta');
-
-                    function actualizarPreguntas() {{
-                        var pacienteId = $pacienteSelect.val();
-                        $preguntaSelect.empty();
-                        $preguntaSelect.append('<option value="">---------</option>');
-
-                        if (pacienteId && preguntasMap[pacienteId]) {{
-                            $.each(preguntasMap[pacienteId], function(index, item) {{
-                                var option = new Option(item.text, item.id);
-                                if (item.id === currentPregunta) {{ option.selected = true; }}
-                                $preguntaSelect.append(option);
-                            }});
-                        }}
-                    }}
-
-                    $pacienteSelect.change(actualizarPreguntas);
-
-                    if ($pacienteSelect.val()) {{
-                        actualizarPreguntas();
-                    }} else {{
-                        $preguntaSelect.empty();
-                        $preguntaSelect.append('<option value="">Primero seleccione un paciente arriba</option>');
-                    }}
-                }});
-            }})(django.jQuery);
-        </script>
-        """
-        self.fields['paciente_filtro'].help_text = mark_safe(script)
-
-    def clean(self):
-        cleaned_data = super().clean()
-        pregunta = cleaned_data.get('pregunta')
-        retro = cleaned_data.get('retroalimentacion')
-        is_correct = cleaned_data.get('is_correct')  # Nuevo
-
-        # REGLA 1: Retroalimentación por defecto
-        if not retro or retro.strip() == "":
-            cleaned_data['retroalimentacion'] = "No existe retroalimentación para esta respuesta aún."
-            self.instance.retroalimentacion = cleaned_data['retroalimentacion']
-
-        if pregunta:
-            # REGLA 2: Máximo 4 opciones
-            cantidad = OpcionMultiple.objects.filter(pregunta=pregunta).exclude(pk=self.instance.pk).count()
-            if cantidad >= 4:
-                raise ValidationError(f"Error: La pregunta '{pregunta.titulo}' ya tiene 4 opciones.")
-
-            # REGLA 3: Solo una respuesta correcta (NUEVA)
-            if is_correct:
-                # Buscamos si ya existe alguna correcta para esta misma pregunta
-                ya_existe_correcta = OpcionMultiple.objects.filter(
-                    pregunta=pregunta, 
-                    is_correct=True
-                ).exclude(pk=self.instance.pk).exists()
-                
-                if ya_existe_correcta:
-                    raise ValidationError(
-                        f"Error: La pregunta '{pregunta.titulo}' ya tiene una respuesta correcta marcada. "
-                        "Debes editar la otra opción y desmarcarla antes de asignar una nueva correcta."
-                    )
-
-        return cleaned_data
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.retroalimentacion = self.cleaned_data['retroalimentacion']
-        if commit: instance.save()
-        return instance
 
 # ==========================================
 # 2. ADMINS
@@ -246,7 +134,9 @@ class EtapaAdmin(admin.ModelAdmin):
 
 class PreguntaAdmin(admin.ModelAdmin):
     form = PreguntaForm
-    fields = ('paciente_seleccionado', 'destino_etapa', 'titulo', 'texto', 'urlvideo', 'retroalimentacion_general', 'docente')
+    # CAMBIO AQUÍ: Se eliminó 'texto' de la lista de campos
+    fields = ('paciente_seleccionado', 'destino_etapa', 'titulo', 'urlvideo', 'retroalimentacion_general', 'docente')
+    
     list_display = ('get_paciente_nombre', 'titulo', 'tipo', 'urlvideo')
     list_filter = ('tipo', 'id_etapa__id_paciente')
     search_fields = ('titulo', 'id_etapa__id_paciente__nombre')
@@ -257,8 +147,6 @@ class PreguntaAdmin(admin.ModelAdmin):
     get_paciente_nombre.short_description = "Paciente"
 
 class OpcionMultipleAdmin(admin.ModelAdmin):
-    form = OpcionMultipleForm
-    fields = ('paciente_filtro', 'pregunta', 'texto_opcion', 'is_correct', 'retroalimentacion')
     list_display = ('get_paciente', 'pregunta', 'texto_opcion', 'is_correct')
     list_filter = ('is_correct', 'pregunta__id_etapa__id_paciente')
     search_fields = ('pregunta__titulo', 'texto_opcion')

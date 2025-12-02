@@ -1,0 +1,131 @@
+{% extends 'base_site.html' %}
+{% load static %}
+
+{% block title %}Estado de Solicitudes{% endblock %}
+
+{% block nav_buttons %}
+    <a href="{% url 'cursosestudiante:ver_avances' %}"
+        class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
+        MI AVANCE
+    </a>
+    <a href="{% url 'cursosestudiante:lista_cursos' %}"
+        class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
+        MIS CURSOS
+    </a>
+    <a href="{% url 'cursosestudiante:solicitar_revision' %}"
+        class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
+        SOLICITAR REVISION
+    </a>
+    <a href="{% url 'login:logout' %}"
+       class="bg-red-600 text-white font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+       CERRAR SESIÓN
+    </a>
+{% endblock %}
+
+{% block content %}
+<style>
+    .border-blue-custom { border: 4px solid #1e3a8a; }
+    
+    .label-gray {
+        background-color: #a0a0a0;
+        color: white;
+        font-weight: bold;
+        border-radius: 9999px;
+        padding: 6px 20px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .label-green {
+        background-color: #76c84a;
+        color: white;
+        font-weight: bold;
+        border-radius: 9999px;
+        padding: 6px 20px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Nueva etiqueta azul para el Tipo */
+    .label-blue-light {
+        background-color: #5c7cfa;
+        color: white;
+        font-weight: bold;
+        border-radius: 9999px;
+        padding: 6px 20px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .box-content-gray {
+        background-color: #d3d3d3;
+        border-radius: 15px;
+        padding: 15px;
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+<div class="container mx-auto py-10 px-4 max-w-4xl">
+
+    <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold text-black uppercase">ESTADO DE SOLICITUDES DE REVISIÓN</h2>
+        <p class="text-gray-600 text-lg">Visualiza el estado de tus solicitudes</p>
+    </div>
+
+    <div class="space-y-8">
+        
+        {% for sol in solicitudes %}
+        <div class="bg-white p-6 rounded-lg border-blue-custom shadow-lg">
+            
+            <div class="grid grid-cols-1 md:grid-cols-[100px_1fr] gap-4 mb-4 items-center">
+                
+                <div class="font-bold text-lg text-black md:text-right">Curso</div>
+                <div class="label-gray text-lg">“{{ sol.curso.nombrecurso }}”</div>
+
+                <div class="font-bold text-lg text-black md:text-right">Paciente</div>
+                <div class="label-gray text-lg">“{{ sol.paciente.nombre }}”</div>
+
+                <div class="font-bold text-lg text-black md:text-right">Tipo</div>
+                <div class="label-blue-light text-lg">
+                    {% if sol.etapa_solicitud == 2 %}
+                        Exploración: {{ sol.exploracion_especifica.titulo }}
+                    {% else %}
+                        Diagnóstico
+                    {% endif %}
+                </div>
+
+                <div class="font-bold text-lg text-black md:text-right">Estado</div>
+                {% if sol.estado == 'RESPONDIDA' %}
+                    <div class="label-green text-lg uppercase">Respondida</div>
+                {% else %}
+                    <div class="label-gray text-lg uppercase">Pendiente</div>
+                {% endif %}
+
+                <div class="font-bold text-lg text-black md:text-right self-start mt-2">Solicitud:</div>
+                <div class="box-content-gray text-lg italic">
+                    “{{ sol.motivo }}”
+                </div>
+
+                {% if sol.estado == 'RESPONDIDA' and sol.respuesta_docente %}
+                <div class="font-bold text-lg text-black md:text-right self-start mt-2">Respuesta:</div>
+                <div class="box-content-gray text-lg italic border-2 border-[#76c84a]">
+                    “{{ sol.respuesta_docente }}”
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+        {% empty %}
+            <p class="text-center text-gray-500 text-xl italic mt-10">No tienes solicitudes de revisión registradas.</p>
+        {% endfor %}
+
+    </div>
+
+</div>
+{% endblock %}

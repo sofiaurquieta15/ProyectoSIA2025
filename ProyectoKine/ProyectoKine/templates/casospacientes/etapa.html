@@ -13,6 +13,10 @@
     class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
     MIS CURSOS
 </a>
+<a href="{% url 'cursosestudiante:solicitar_revision' %}"
+        class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
+        SOLICITAR REVISION
+    </a>
 <a href="{% url 'casos:lista_casos' paciente.id_curso.id %}"
     class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
     PACIENTES
