@@ -246,9 +246,44 @@ def EstadoSolicitudesView(request):
     except Estudiante.DoesNotExist:
         return redirect('login:login_estudiante')
 
-    # Obtener todas las solicitudes del estudiante, ordenadas por fecha (más recientes primero)
+    # 1. Consulta Base (Todas las solicitudes del alumno)
     solicitudes = SolicitudRevision.objects.filter(estudiante=usuario).order_by('-fecha_solicitud')
 
-    return render(request, 'cursosestudiante/estado_solicitudes.html', {
-        'solicitudes': solicitudes
-    })
+    # 2. Obtener opciones para los filtros (Solo cursos/pacientes presentes en sus solicitudes)
+    # Usamos distinct para no repetir opciones en el dropdown
+    cursos_ids = solicitudes.values_list('curso_id', flat=True).distinct()
+    pacientes_ids = solicitudes.values_list('paciente_id', flat=True).distinct()
+    
+    cursos_filter = Curso.objects.filter(id__in=cursos_ids)
+    pacientes_filter = Paciente.objects.filter(id__in=pacientes_ids)
+
+    # 3. Aplicar Filtros si vienen en la URL (GET)
+    curso_id = request.GET.get('curso')
+    paciente_id = request.GET.get('paciente')
+    estado = request.GET.get('estado')
+    tipo = request.GET.get('tipo') # 2=Exploración, 3=Diagnóstico
+
+    if curso_id:
+        solicitudes = solicitudes.filter(curso_id=curso_id)
+    
+    if paciente_id:
+        solicitudes = solicitudes.filter(paciente_id=paciente_id)
+    
+    if estado:
+        solicitudes = solicitudes.filter(estado=estado)
+        
+    if tipo:
+        solicitudes = solicitudes.filter(etapa_solicitud=tipo)
+
+    context = {
+        'solicitudes': solicitudes,
+        'cursos_filter': cursos_filter,
+        'pacientes_filter': pacientes_filter,
+        # Enviamos lo seleccionado para mantener el valor en el input
+        'selected_curso': int(curso_id) if curso_id else '',
+        'selected_paciente': int(paciente_id) if paciente_id else '',
+        'selected_estado': estado or '',
+        'selected_tipo': int(tipo) if tipo else '',
+    }
+
+    return render(request, 'cursosestudiante/estado_solicitudes.html', context)
