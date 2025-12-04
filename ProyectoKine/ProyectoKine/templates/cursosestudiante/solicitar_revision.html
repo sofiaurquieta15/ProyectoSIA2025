@@ -53,26 +53,73 @@
 </style>
 
 <div class="container mx-auto py-10 px-4 max-w-4xl text-center">
-    
-    <h2 class="text-3xl font-bold text-gray-900 mb-2">SOLICITAR REVISIÓN</h2>
-    <p class="text-gray-600 mb-10 text-lg">Solicita revisión y recibe una retroalimentación</p>
 
-    <div id="contenedor-consultas" class="space-y-8"></div>
+    <!-- ICONO + TITULO -->
+    <div class="mx-auto mb-6">
+        <!-- Icono: sobre + lupa (inline SVG) -->
+        <svg class="mx-auto mb-4" width="68" height="68" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M3 7.5L12 13L21 7.5" stroke="#1e3a8a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="2" y="4" width="20" height="12" rx="2" stroke="#1e3a8a" stroke-width="1.2"/>
+            <path d="M21 20l-3-3" stroke="#2e7d32" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="17.5" cy="16.5" r="2" stroke="#2e7d32" stroke-width="1.6"/>
+        </svg>
 
-    <div id="btn-container" class="mt-16 flex flex-col md:flex-row justify-center items-center gap-6">
-        
-        <button type="button" onclick="abrirModalSeleccion()" 
-                id="btn-add-main"
-                class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-full shadow-lg transition text-xl uppercase w-full md:w-auto">
-            AÑADIR UNA CONSULTA
-        </button>
+        <h2 class="text-3xl font-extrabold text-center text-gray-900 mb-2">
+            SOLICITAR REVISIÓN
+        </h2>
 
-        <a href="{% url 'cursosestudiante:estado_solicitudes' %}"
-           id="btn-bottom-estado"
-           class="text-white font-bold py-3 px-8 rounded-full shadow-lg transition text-xl uppercase w-full md:w-auto text-center"
-           style="background-color: #2e7d32;">
-           ESTADO SOLICITUDES
-        </a>
+        <!-- DESCRIPCIÓN AMPLIADA (A) -->
+        <p class="text-center text-gray-600 mb-6 max-w-2xl mx-auto">
+            En este espacio podrás comunicarte directamente con tu docente respecto al avance de tus casos clínicos. 
+            Envía consultas, revisa retroalimentaciones y lleva un seguimiento claro de tu proceso formativo.
+        </p>
+    </div>
+
+    <!-- RECUADRO INFORMATIVO (B) -->
+    <div class="bg-blue-50 border-l-4 border-blue-900 rounded-lg p-4 mb-8 max-w-3xl mx-auto text-left">
+        <p class="font-semibold text-blue-900 mb-2">Información importante</p>
+        <ul class="text-sm text-gray-700 list-disc list-inside space-y-1">
+            <li>Tiempo estimado de respuesta docente: <strong>24–48 horas</strong>.</li>
+            <li>Revisa que tu consulta incluya: paciente, etapa (exploración/diagnóstico) y motivo claro.</li>
+            <li>Si es exploración, selecciona la exploración correspondiente para orientar la retroalimentación.</li>
+        </ul>
+    </div>
+
+    <!-- BOTONES DENTRO DE TARJETAS (D) -->
+    <div id="btn-container" class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center">
+
+        <!-- Card: Añadir consulta -->
+        <div class="w-full max-w-md bg-white rounded-xl shadow-lg border-2 border-gray-100 p-6 text-center">
+            <h3 class="text-xl font-bold text-gray-900 mb-2 uppercase">Añadir una consulta</h3>
+            <p class="text-gray-600 text-sm mb-4">
+                Crea una nueva solicitud indicando curso, paciente y motivo. Puedes abrir un formulario por tipo de etapa.
+            </p>
+            <div class="flex justify-center">
+                <button type="button" onclick="abrirModalSeleccion()" 
+                        id="btn-add-main"
+                        class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-full shadow-lg transition text-lg uppercase">
+                    AÑADIR UNA CONSULTA
+                </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-4">Tip: redacta la consulta con puntos concretos para obtener mejor retroalimentación.</p>
+        </div>
+
+        <!-- Card: Estado solicitudes -->
+        <div class="w-full max-w-md bg-white rounded-xl shadow-lg border-2 border-gray-100 p-6 text-center">
+            <h3 class="text-xl font-bold text-gray-900 mb-2 uppercase">Estado de solicitudes</h3>
+            <p class="text-gray-600 text-sm mb-4">
+                Consulta el estado (pendiente / en revisión / respondida). Mantén seguimiento y responde cuando el docente lo solicite.
+            </p>
+            <div class="flex justify-center">
+                <a href="{% url 'cursosestudiante:estado_solicitudes' %}"
+                   id="btn-bottom-estado"
+                   class="text-white font-bold py-3 px-8 rounded-full shadow-lg transition text-lg uppercase"
+                   style="background-color: #2e7d32;">
+                   ESTADO SOLICITUDES
+                </a>
+            </div>
+            <p class="text-xs text-gray-400 mt-4">Última actualización automática en la vista de estado.</p>
+        </div>
 
     </div>
 
