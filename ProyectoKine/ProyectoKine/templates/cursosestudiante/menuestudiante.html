@@ -4,6 +4,10 @@
 {% block title %}Menú Estudiante - KineLearn{% endblock %}
 
 {% block nav_buttons %}
+<a href="{% url 'login:logout' %}"
+   class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-4 rounded-full shadow transition">
+   CERRAR SESIÓN
+</a>
 {% endblock %}
 
 {% block content %}
@@ -24,51 +28,94 @@
         <h2 class="text-5xl font-extrabold text-gray-900 mb-2">
             ¡Bienvenido a KineLearn!
         </h2>
-        <p class="text-xl text-gray-600">Selecciona una opción para comenzar</p>
+        <p class="text-xl text-gray-600">
+            Explora tus cursos, revisa tu progreso y trabaja con casos clínicos diseñados para fortalecer tus competencias en kinesiología.
+        </p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center max-w-7xl mx-auto">
-        
-        <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
-            <div>
-                <div class="text-6xl mb-4">📚</div> 
-                <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">MIS CURSOS</h3>
-                <p class="text-gray-600 text-sm">Accede a tus asignaturas y casos clínicos.</p>
+    <!-- 🔵 CONTENEDOR EN DOS COLUMNAS (TARJETAS + PANEL LATERAL) -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-10 max-w-7xl mx-auto">
+
+        <!-- 🔵 COLUMNA PRINCIPAL: TARJETAS -->
+        <div class="lg:col-span-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center">
+
+                <!-- TARJETA 1 -->
+                <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
+                    <div>
+                        <div class="text-6xl mb-4">📚</div> 
+                        <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">MIS CURSOS</h3>
+                        <p class="text-gray-600 text-sm">Accede a tus asignaturas y casos clínicos.</p>
+                    </div>
+                    
+                    <a href="{% url 'cursosestudiante:lista_cursos' %}" 
+                    class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">
+                        ACCEDER
+                    </a>
+                </div>
+
+                <!-- TARJETA 2 -->
+                <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
+                    <div>
+                        <div class="text-6xl mb-4">📈</div> 
+                        <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">REVISAR AVANCES</h3>
+                        <p class="text-gray-600 text-sm">Consulta tu progreso en tiempo real.</p>
+                    </div>
+
+                    <a href="{% url 'cursosestudiante:ver_avances' %}" 
+                        class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">
+                        ACCEDER
+                    </a>
+                </div>
+
+                <!-- TARJETA 3 -->
+                <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
+                    <div>
+                        <div class="text-6xl mb-4">📩</div> 
+                        <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">SOLICITAR REVISIÓN</h3>
+                        <p class="text-gray-600 text-sm">Envía consultas al docente sobre tus casos.</p>
+                    </div>
+
+                    <a href="{% url 'cursosestudiante:solicitar_revision' %}" 
+                        class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">
+                        ACCEDER
+                    </a>
+                </div>
+
             </div>
-            
-            <a href="{% url 'cursosestudiante:lista_cursos' %}" 
-               class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">
-                ACCEDER
-            </a>
         </div>
 
-        <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
-            <div>
-                <div class="text-6xl mb-4">📈</div> 
-                <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">REVISAR AVANCES</h3>
-                <p class="text-gray-600 text-sm">Consulta tu progreso en tiempo real.</p>
-            </div>
+        <!-- 🔵 PANEL LATERAL PROFESIONAL -->
+        <aside class="bg-white shadow-xl border border-blue-900 rounded-xl p-6 h-fit">
 
-            <a href="{% url 'cursosestudiante:ver_avances' %}" 
-                class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">
-                ACCEDER
-            </a>
-        </div>
+            <h3 class="text-xl font-bold text-blue-900 mb-4">📌 Información Rápida</h3>
 
-        <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
-            <div>
-                <div class="text-6xl mb-4">📩</div> 
-                <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">SOLICITAR REVISIÓN</h3>
-                <p class="text-gray-600 text-sm">Envía consultas al docente sobre tus casos.</p>
-            </div>
+            <ul class="space-y-4 text-gray-700">
 
-            <a href="{% url 'cursosestudiante:solicitar_revision' %}" 
-                class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">
-                ACCEDER
-            </a>
-        </div>
+                <li class="p-3 bg-blue-50 border-l-4 border-blue-900 rounded">
+                    🔔 <strong>Recordatorio:</strong> Revisa tus avances pendientes del curso.
+                </li>
+
+                <li class="p-3 bg-blue-50 border-l-4 border-blue-900 rounded">
+                    📅 <strong>Próxima fecha:</strong> nuevas evaluaciones estarán disponibles pronto.
+                </li>
+
+                <li class="p-3 bg-blue-50 border-l-4 border-blue-900 rounded">
+                    💡 <strong>Consejo del día:</strong> Revisa el caso clínico al menos 2 veces.
+                </li>
+
+            </ul>
+
+            <hr class="my-6">
+
+            <h4 class="text-lg font-bold text-blue-900 mb-2">👤 Perfil</h4>
+            <p class="text-gray-700 text-sm mb-1"><strong>Estudiante:</strong> {{ user.nombre }}</p>
+            <p class="text-gray-700 text-sm"><strong>Rol:</strong> Estudiante</p>
+
+        </aside>
 
     </div>
 
 </div>
+
 {% endblock %}
