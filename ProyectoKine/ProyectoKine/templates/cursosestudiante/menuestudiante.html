@@ -29,14 +29,16 @@
     <button onclick="abrirModal('modal-perfil-estudiante')" 
             class="hidden lg:block absolute top-0 right-10 bg-blue-900 hover:bg-blue-800 text-white font-semibold text-lg px-6 py-2 rounded-b-lg shadow-md border-t-0 border-x-2 border-b-2 border-blue-800 transition cursor-pointer z-10"
             title="Clic para editar perfil">
-        Hola, {{ user.nombre }} {{ user.apellido }}
+        Hola, {{ user.nombre }} {{ user.apellido }} <span class="text-sm ml-2">✏️</span>
     </button>
 
     <div class="text-center mb-12 mt-8">
         <h2 class="text-5xl font-extrabold text-gray-900 mb-2">
             ¡Bienvenido a KineLearn!
         </h2>
-        <p class="text-xl text-gray-600">Selecciona una opción para comenzar</p>
+        <p class="text-xl text-gray-600">
+            Explora tus cursos, revisa tu progreso y trabaja con casos clínicos.
+        </p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center max-w-7xl mx-auto">
