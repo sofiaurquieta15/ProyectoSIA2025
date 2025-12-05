@@ -50,11 +50,14 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        <div class="bg-black h-[350px] flex items-center justify-center rounded-lg shadow-lg border-blue-custom overflow-hidden">
+        <div class="bg-black h-[350px] rounded-lg shadow-lg border-blue-custom overflow-hidden">
             <iframe id="video-exploracion"
                     class="w-full h-full"
-                    src="{{ exploraciones.0.urlvideo }}"
+                    src="{{ exploracion.embed_url }}"
+                    title="Video de la exploracion"
                     frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
                     allowfullscreen>
             </iframe>
         </div>

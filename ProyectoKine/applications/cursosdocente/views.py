@@ -6,6 +6,8 @@ from django.contrib.auth.models import User
 from django.db.models import Count
 from .forms import CursoForm, PacienteForm, TipoCasoForm
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+from applications.casospacientes.models import Etapa, Exploracion
 # Modelos
 from applications.login.models import Docente, Estudiante
 from .models import Curso
@@ -542,23 +544,47 @@ def guardar_exploracion_etapa(request):
     if request.method == 'POST':
         try:
             etapa_id = request.POST.get('etapa_id')
+            exploracion_id = request.POST.get('exploracion_id')
             nombre = request.POST.get('nombre_exploracion')
             indicacion = request.POST.get('indicacion_exploracion')
+            retro = request.POST.get('retro_exploracion')
             video_url = request.POST.get('video_url') # Nuevo campo
             
             etapa = Etapa.objects.get(id=etapa_id)
             
-            orden_actual = Exploracion.objects.filter(id_etapa=etapa).count() + 1
+            if exploracion_id:
+                exploracion = get_object_or_404(Exploracion, id=exploracion_id)
+
+                exploracion.titulo = nombre
+                exploracion.instruccion = indicacion
+                exploracion.retroalimentacion_general = retro
+                exploracion.urlvideo = video_url
+            else:
+                cantidad_actual = Exploracion.objects.filter(id_etapa=etapa).count()
+                if cantidad_actual >= 6:
+                    return JsonResponse({
+                        'ok':False,
+                        'error': 'Limite alcanzado: Máximo de 6 exploraciones permitidas por etapa'
+                    }, status=400)
+
+                orden_actual = cantidad_actual + 1
+
+                exploracion = Exploracion(
+                    id_etapa=etapa,
+                    titulo=nombre,
+                    instruccion=indicacion,
+                    retroalimentacion_general=retro,
+                    orden=orden_actual,
+                    urlvideo=video_url
+                )
             
-            Exploracion.objects.create(
-                id_etapa=etapa, 
-                titulo=nombre, 
-                instruccion=indicacion,
-                orden=orden_actual,
-                urlvideo=video_url # Asociamos video a la exploración
-            )
-            
-            return JsonResponse({'ok': True})
+            exploracion.save()
+
+            return JsonResponse({'ok':True, 'id':exploracion.id})
+        
+        except ValidationError as e:
+            return JsonResponse({'ok': False, 'error':e.nessages[0]})
+           
         except Exception as e:
             return JsonResponse({'ok': False, 'error': str(e)})
             

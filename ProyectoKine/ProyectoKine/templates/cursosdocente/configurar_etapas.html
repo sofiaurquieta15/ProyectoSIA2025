@@ -179,37 +179,94 @@
                 {% endfor %}
             </div>
 
+            
             <div class="lg:col-span-2">
-                <div class="bg-green-50 p-8 rounded border border-green-100 shadow-sm sticky top-4">
-                    <h4 class="font-bold text-green-800 mb-6 uppercase text-lg border-b border-green-200 pb-2"><span id="titulo-form-exploracion">Nueva Exploración</span></h4>
-                    <form id="form-exploracion" onsubmit="guardarExploracion(event)">
-                        {% csrf_token %}
-                        <input type="hidden" name="etapa_id" value="{{ etapa2.id }}">
-                        <input type="hidden" name="exploracion_id" id="edit-exploracion-id" value="">
+                {% if exploraciones_e2|length < 6 %}
+                    <div class="bg-green-50 p-8 rounded border border-green-100 shadow-sm sticky top-4">
+                        <h4 class="font-bold text-green-800 mb-6 uppercase text-lg border-b border-green-200 pb-2">
+                            <span id="titulo-form-exploracion">Nueva Exploración</span>
+                        </h4>
                         
-                        <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-1">Título</label>
-                            <input type="text" name="nombre_exploracion" id="input-exp-nombre" required class="w-full p-2 border rounded">
+                        <form id="form-exploracion" onsubmit="guardarExploracion(event)">
+                            {% csrf_token %}
+                            <input type="hidden" name="etapa_id" value="{{ etapa2.id }}">
+                            <input type="hidden" name="exploracion_id" id="edit-exploracion-id" value="">
+                            
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-1">Título</label>
+                                <input type="text" name="nombre_exploracion" id="input-exp-nombre" required class="w-full p-2 border rounded">
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-1">Instrucción</label>
+                                <textarea name="indicacion_exploracion" id="input-exp-indicacion" required rows="2" class="w-full p-2 border rounded"></textarea>
+                            </div>
+                            <div class="mb-4 bg-yellow-50/50 p-3 rounded">
+                                <label class="block text-gray-700 text-sm font-bold mb-1">Retroalimentación</label>
+                                <textarea name="retro_exploracion" id="input-exp-retro" rows="2" class="w-full p-2 border rounded"></textarea>
+                            </div>
+                            <div class="mb-6">
+                                <label class="block text-gray-700 text-sm font-bold mb-1">URL Video</label>
+                                <input type="url" name="video_url" id="input-exp-video" required class="w-full p-2 border rounded">
+                            </div>
+                            <div class="flex gap-3 pt-4 border-t border-green-200">
+                                <button type="submit" class="bg-green-700 text-white font-bold py-3 px-6 rounded flex-1 hover:bg-green-800 shadow uppercase transition transform hover:scale-[1.01]">Guardar</button>
+                                <button type="button" onclick="resetFormExploracion()" class="bg-gray-400 text-white font-bold py-3 px-6 rounded hover:bg-gray-500 shadow uppercase transition" style="display:none;" id="btn-cancelar-exp">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+
+                {% else %}
+                    <div class="bg-gray-100 p-8 rounded border border-gray-300 shadow-sm sticky top-4 text-center">
+                        <div class="inline-block p-3 rounded-full bg-red-100 mb-4">
+                            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                         </div>
-                        <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-1">Instrucción</label>
-                            <textarea name="indicacion_exploracion" id="input-exp-indicacion" required rows="2" class="w-full p-2 border rounded"></textarea>
+                        <h4 class="font-bold text-gray-800 mb-2 uppercase text-lg">Límite Alcanzado (6/6)</h4>
+                        <p class="text-sm text-gray-600 mb-6">
+                            Has completado el número máximo de exploraciones permitidas para esta etapa.
+                            <br><span class="text-xs italic text-gray-500">Para agregar una nueva, debes eliminar alguna existente.</span>
+                        </p>
+                        
+                        <div class="bg-white p-4 rounded border border-gray-200 text-left">
+                            <p class="text-xs font-bold text-blue-800 mb-1">💡 ¿Quieres editar?</p>
+                            <p class="text-xs text-gray-600">Haz clic en el botón <span class="bg-yellow-100 text-yellow-800 px-1 rounded font-bold">✏️ EDITAR</span> de la lista a la izquierda para modificar una exploración existente.</p>
                         </div>
-                        <div class="mb-4 bg-yellow-50/50 p-3 rounded">
-                            <label class="block text-gray-700 text-sm font-bold mb-1">Retroalimentación</label>
-                            <textarea name="retro_exploracion" id="input-exp-retro" rows="2" class="w-full p-2 border rounded"></textarea>
+
+                        <div id="contenedor-form-oculto" style="display:none;">
+                             <div class="bg-green-50 p-8 rounded border border-green-100 shadow-sm mt-4 text-left">
+                                <h4 class="font-bold text-green-800 mb-6 uppercase text-lg border-b border-green-200 pb-2">
+                                    <span id="titulo-form-exploracion">Editar Exploración</span>
+                                </h4>
+                                <form id="form-exploracion" onsubmit="guardarExploracion(event)">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="etapa_id" value="{{ etapa2.id }}">
+                                    <input type="hidden" name="exploracion_id" id="edit-exploracion-id" value="">
+                                    
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-1">Título</label>
+                                        <input type="text" name="nombre_exploracion" id="input-exp-nombre" required class="w-full p-2 border rounded">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block text-gray-700 text-sm font-bold mb-1">Instrucción</label>
+                                        <textarea name="indicacion_exploracion" id="input-exp-indicacion" required rows="2" class="w-full p-2 border rounded"></textarea>
+                                    </div>
+                                    <div class="mb-4 bg-yellow-50/50 p-3 rounded">
+                                        <label class="block text-gray-700 text-sm font-bold mb-1">Retroalimentación</label>
+                                        <textarea name="retro_exploracion" id="input-exp-retro" rows="2" class="w-full p-2 border rounded"></textarea>
+                                    </div>
+                                    <div class="mb-6">
+                                        <label class="block text-gray-700 text-sm font-bold mb-1">URL Video</label>
+                                        <input type="url" name="video_url" id="input-exp-video" required class="w-full p-2 border rounded">
+                                    </div>
+                                    <div class="flex gap-3 pt-4 border-t border-green-200">
+                                        <button type="submit" class="bg-green-700 text-white font-bold py-3 px-6 rounded flex-1 hover:bg-green-800 shadow uppercase transition transform hover:scale-[1.01]">Guardar</button>
+                                        <button type="button" onclick="resetFormExploracion()" class="bg-gray-400 text-white font-bold py-3 px-6 rounded hover:bg-gray-500 shadow uppercase transition" style="display:block;" id="btn-cancelar-exp">Cancelar</button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
-                        <div class="mb-6">
-                            <label class="block text-gray-700 text-sm font-bold mb-1">URL Video</label>
-                            <input type="url" name="video_url" id="input-exp-video" required class="w-full p-2 border rounded">
-                        </div>
-                        <div class="flex gap-3 pt-4 border-t border-green-200">
-                            <button type="submit" class="bg-green-700 text-white font-bold py-3 px-6 rounded flex-1 hover:bg-green-800 shadow uppercase transition transform hover:scale-[1.01]">Guardar</button>
-                            <button type="button" onclick="resetFormExploracion()" class="bg-gray-400 text-white font-bold py-3 px-6 rounded hover:bg-gray-500 shadow uppercase transition" style="display:none;" id="btn-cancelar-exp">Cancelar</button>
-                        </div>
-                    </form>
+                    </div>
+                {% endif %}
                 </div>
-            </div>
         </div>
     </div>
 

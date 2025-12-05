@@ -39,14 +39,21 @@
 <div class="flex-grow container mx-auto py-10 px-4 sm:px-6 lg:px-8 max-w-6xl">
 
     <div class="bg-white p-8 rounded-lg shadow-lg mb-12 border-blue-custom">
-        <div class="text-4xl mb-2 text-center">👤</div>
+
         <h2 class="text-4xl font-extrabold text-center text-gray-900 mb-6 uppercase">
             {{ paciente.nombre }}
         </h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-lg text-gray-700">
             <div>
-                <p><span class="font-bold text-blue-900">Edad:</span> {{ paciente.edad }} años</p>
+                <p><span class="font-bold text-blue-900">Edad:</span> 
+                    {% if paciente.edad == 0 %}
+                        Lactante (menor a 1 año)
+                    {% else %}
+                        {{ paciente.edad }} años
+                    {% endif %}
+                    
+                    </p>
                 <p><span class="font-bold text-blue-900">Sexo:</span> {{ paciente.sexo }}</p>
                 <p><span class="font-bold text-blue-900">Ocupación:</span> {{ paciente.ocupacion }}</p>
             </div>
@@ -60,14 +67,9 @@
 
     </div>
 
-    <div class="text-center mb-12 mt-8">
     <h2 class="text-4xl font-extrabold text-gray-900 mb-10 text-center uppercase">
         Etapas del caso
-    </h2>   
-    <p class="text-xl text-gray-600">
-        Comienza a completar el caso clínico avanzando en las diferentes etapas:
-    </p>
-    </div>
+    </h2>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 justify-items-center">
 
@@ -132,18 +134,13 @@
         {% endfor %}
     </div>
 
-
-    <div class="w-full mt-12 flex flex-col items-center space-y-6">
-        <p class="text-l text-gray-500 text-center">
-            *No olvidar que las etapas son por orden, si no terminas una no puedes acceder a la siguiente.
-        </p>
+    <div class="w-full mt-12 flex justify-center">
         <a href="{% url 'casos:lista_casos' paciente.id_curso.id %}"
-            class="px-8 py-3 rounded-full bg-gray-400 text-white font-bold 
-              hover:bg-gray-500 transition uppercase shadow-lg">
+           class="px-8 py-3 rounded-full bg-gray-400 text-white font-bold 
+                  hover:bg-gray-500 transition uppercase shadow-lg">
             VOLVER A CASOS
         </a>
     </div>
-
 
 </div>
 
