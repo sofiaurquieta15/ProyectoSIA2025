@@ -100,18 +100,27 @@ class Pregunta(models.Model):
         help_text="Mensaje que se muestra al estudiante al finalizar."
     )
 
-    def save(self, *args, **kwargs):
+    @property
+    def embed_url(self):
+
+        url = self.urlvideo
+        if "watch?v=" in url:
+            return url.replace("watch?v=","embed/")
+        return url
+    
+
+    #def save(self, *args, **kwargs):
         # Convertir URL tipo watch?v=
-        if "watch?v=" in self.urlvideo:
-            video_id = self.urlvideo.split("watch?v=")[1].split("&")[0]
-            self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
+    #    if "watch?v=" in self.urlvideo:
+    #        video_id = self.urlvideo.split("watch?v=")[1].split("&")[0]
+    #        self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
 
         # Convertir URL tipo youtu.be
-        elif "youtu.be/" in self.urlvideo:
-            video_id = self.urlvideo.split("youtu.be/")[1].split("?")[0]
-            self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
+    #    elif "youtu.be/" in self.urlvideo:
+    #        video_id = self.urlvideo.split("youtu.be/")[1].split("?")[0]
+    #        self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
 
-        super().save(*args, **kwargs)
+    #    super().save(*args, **kwargs)
 
     def __str__(self):
         # CAMBIO AQUÍ: Ahora muestra [NOMBRE PACIENTE] Título de pregunta
