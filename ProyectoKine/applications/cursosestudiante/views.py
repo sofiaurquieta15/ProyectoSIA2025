@@ -287,3 +287,84 @@ def EstadoSolicitudesView(request):
     }
 
     return render(request, 'cursosestudiante/estado_solicitudes.html', context)
+
+@csrf_exempt
+def eliminar_pregunta_api(request, pk):
+    if request.method == 'POST':
+        try:
+            Pregunta.objects.get(pk=pk).delete()
+            return JsonResponse({'ok': True})
+        except:
+            return JsonResponse({'ok': False})
+    return JsonResponse({'ok': False})
+
+def obtener_pregunta_api(request, pk):
+    try:
+        p = Pregunta.objects.get(pk=pk)
+        opciones = p.opciones.all() # Asegúrate que related_name='opciones' en tu modelo OpcionMultiple
+        
+        lista_opciones = []
+        for op in opciones:
+            lista_opciones.append({
+                'texto': op.texto_opcion,
+                'retro': op.retroalimentacion,
+                'es_correcta': op.is_correct
+            })
+            
+        data = {
+            'id': p.id,
+            'titulo': p.titulo,
+            'urlvideo': p.urlvideo,
+            'opciones': lista_opciones
+        }
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+# Y ACTUALIZAR guardar_pregunta_etapa PARA SOPORTAR EDICIÓN (ID existente)
+@csrf_exempt
+def guardar_pregunta_etapa(request):
+    if request.method == 'POST':
+        try:
+            pregunta_id = request.POST.get('pregunta_id') # ID si es edición
+            etapa_id = request.POST.get('etapa_id')
+            texto_titulo = request.POST.get('texto_pregunta')
+            video_url = request.POST.get('video_url')
+            
+            if pregunta_id:
+                # EDICIÓN
+                pregunta = Pregunta.objects.get(pk=pregunta_id)
+                pregunta.titulo = texto_titulo
+                pregunta.urlvideo = video_url
+                pregunta.save()
+                
+                # Borramos opciones viejas y creamos nuevas (más fácil que editar una por una)
+                pregunta.opciones.all().delete()
+            else:
+                # CREACIÓN
+                etapa = Etapa.objects.get(id=etapa_id)
+                docente = Docente.objects.get(id=request.session.get('usuario_id'))
+                pregunta = Pregunta.objects.create(
+                    id_etapa=etapa, 
+                    titulo=texto_titulo, 
+                    tipo='MULTIPLE',
+                    docente=docente,
+                    urlvideo=video_url
+                )
+            
+            # Guardar Opciones (Igual para ambos casos)
+            correcta_idx = int(request.POST.get('correcta_index'))
+            for i in range(1, 5):
+                texto_resp = request.POST.get(f'respuesta_{i}')
+                texto_retro = request.POST.get(f'retro_{i}', '')
+                OpcionMultiple.objects.create(
+                    pregunta=pregunta, 
+                    texto_opcion=texto_resp, 
+                    is_correct=(i == correcta_idx),
+                    retroalimentacion=texto_retro
+                )
+                
+            return JsonResponse({'ok': True})
+        except Exception as e:
+            return JsonResponse({'ok': False, 'error': str(e)})
+    return JsonResponse({'ok': False})

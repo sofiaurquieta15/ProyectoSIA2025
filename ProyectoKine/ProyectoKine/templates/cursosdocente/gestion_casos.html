@@ -1,0 +1,393 @@
+{% extends 'base_site.html' %}
+{% load static %}
+
+{% block title %}Gestión de Casos{% endblock %}
+
+{% block nav_buttons %}
+    <a href="{% url 'cursos:mis_cursos' %}" class="bg-white hover:bg-gray-200 text-blue-900 font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+        MIS CURSOS
+    </a>
+    <a href="{% url 'cursos:revisiones_docente' %}" class="bg-white hover:bg-gray-200 text-blue-900 font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+        REVISIONES
+    </a>
+    <a href="{% url 'login:logout' %}" class="bg-red-600 text-white font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+        CERRAR SESIÓN
+    </a>
+{% endblock %}
+
+{% block content %}
+<style>
+    .border-blue-custom { border: 4px solid #1e3a8a; }
+    .btn-blue { background-color: #1e3a8a; color: white; transition: all 0.2s; }
+    .btn-blue:hover { background-color: #1e40af; transform: translateY(-1px); }
+    /* Estilos para el scroll del modal */
+    .lista-pacientes::-webkit-scrollbar { width: 8px; }
+    .lista-pacientes::-webkit-scrollbar-track { background: #f1f1f1; }
+    .lista-pacientes::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .lista-pacientes::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+</style>
+
+<div class="container mx-auto py-10 px-4 max-w-6xl">
+
+    <h2 class="text-4xl font-extrabold text-center text-gray-900 mb-2">GESTIÓN DE CASOS</h2>
+    <p class="text-center text-gray-600 mb-12">Panel de administración docente</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        <div class="bg-white p-6 rounded-xl shadow-lg border-blue-custom text-center flex flex-col justify-between h-80 hover:scale-105 transition duration-300">
+            <div>
+                <div class="text-5xl mb-4">🎓</div>
+                <h3 class="text-2xl font-bold text-gray-800 uppercase">Crear Clase</h3>
+                <p class="text-sm text-gray-600 mt-2">Define el nombre y objetivos de la asignatura.</p>
+            </div>
+            <button onclick="abrirModal('modal-crear-curso')" class="btn-blue font-bold py-3 rounded-full w-full uppercase shadow">CREAR</button>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-lg border-blue-custom text-center flex flex-col justify-between h-80 hover:scale-105 transition duration-300">
+            <div>
+                <div class="text-5xl mb-4">👤</div>
+                <h3 class="text-2xl font-bold text-gray-800 uppercase">Crear Paciente</h3>
+                <p class="text-sm text-gray-600 mt-2">Registra datos del paciente y asígnalo a un curso.</p>
+            </div>
+            <button onclick="abrirModal('modal-crear-paciente')" class="btn-blue font-bold py-3 rounded-full w-full uppercase shadow">CREAR</button>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-lg border-blue-custom text-center flex flex-col justify-between h-80 hover:scale-105 transition duration-300">
+            <div>
+                <div class="text-5xl mb-4">📋</div>
+                <h3 class="text-2xl font-bold text-gray-800 uppercase">Configurar Etapas</h3>
+                <p class="text-sm text-gray-600 mt-2">Busca pacientes, gestiona sus etapas y su visibilidad.</p>
+            </div>
+            
+            <button onclick="abrirBuscadorPacientes()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-full w-full uppercase shadow flex items-center justify-center gap-2 transition">
+                <span>🔍 BUSCAR Y EDITAR</span>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<div id="modal-crear-curso" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-96 border-blue-custom">
+        <h3 class="text-xl font-bold mb-4 text-center">Nuevo Curso</h3>
+        <form id="form-crear-curso">
+            {% csrf_token %}
+            {{ form_curso.as_p }}
+            <button type="button" onclick="enviarFormulario('crear-curso', '{% url 'cursos:crear_curso_ajax' %}')" class="btn-blue w-full py-2 rounded mt-4 font-bold">GUARDAR</button>
+            <button type="button" onclick="cerrarModal('modal-crear-curso')" class="text-gray-500 w-full py-2 mt-2 text-sm underline">Cancelar</button>
+        </form>
+    </div>
+</div>
+
+<div id="modal-crear-paciente" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white p-8 rounded-lg shadow-xl w-[700px] border-blue-custom max-h-[90vh] overflow-y-auto">
+        <h3 class="text-2xl font-bold mb-6 text-center text-blue-900 border-b pb-2">Nuevo Paciente</h3>
+        
+        <form id="form-crear-paciente">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                
+                <div class="col-span-2">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Nombre Completo</label>
+                    {{ form_paciente.nombre }}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Edad</label>
+                    {{ form_paciente.edad }}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Sexo</label>
+                    {{ form_paciente.sexo }}
+                </div>
+
+                <div class="col-span-2">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Ocupación</label>
+                    {{ form_paciente.ocupacion }}
+                </div>
+
+                <div class="col-span-2">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Descripción del Caso</label>
+                    {{ form_paciente.descripcion }}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Asignar a Curso</label>
+                    {{ form_paciente.id_curso }}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Tipo de Caso</label>
+                    {{ form_paciente.tipo_caso }}
+                    
+                    <button type="button" onclick="abrirModal('modal-tipo-caso')" class="mt-2 w-full bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-2 px-3 rounded text-xs transition shadow-sm flex items-center justify-center gap-2">
+                        <span class="text-lg leading-none">+</span> Nuevo Tipo
+                    </button>
+                </div>
+
+            </div>
+
+            <div class="flex gap-3 pt-4 border-t border-gray-200">
+                <button type="button" onclick="enviarFormulario('crear-paciente', '{% url 'cursos:crear_paciente_ajax' %}')" class="btn-blue flex-1 py-3 rounded font-bold shadow hover:shadow-lg transition">GUARDAR PACIENTE</button>
+                <button type="button" onclick="cerrarModal('modal-crear-paciente')" class="bg-gray-300 text-gray-700 font-bold py-3 px-6 rounded shadow hover:bg-gray-400 transition">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-tipo-caso" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[60]">
+    <div class="bg-white p-6 rounded-lg w-80 border-2 border-yellow-500">
+        <h3 class="text-lg font-bold mb-2">Crear Tipo de Caso</h3>
+        <form id="form-tipo-caso">
+            {% csrf_token %}
+            {{ form_tipo_caso.as_p }}
+            <button type="button" onclick="guardarTipoCaso()" class="bg-yellow-500 text-white font-bold w-full py-2 rounded mt-2">Guardar</button>
+            <button type="button" onclick="cerrarModal('modal-tipo-caso')" class="text-gray-500 w-full text-xs mt-2">Cancelar</button>
+        </form>
+    </div>
+</div>
+
+
+<div id="modal-buscar-paciente" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex justify-center items-start pt-10 z-50 transition-opacity backdrop-blur-sm">
+    
+    <div class="bg-white w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        
+        <div class="bg-gray-100 px-6 py-4 border-b flex justify-between items-center">
+            <div>
+                <h3 class="text-xl font-extrabold text-gray-800">🔍 BUSCAR PACIENTE</h3>
+                <p class="text-xs text-gray-500">Filtra por curso, estado o tipo para encontrar el caso rápidamente.</p>
+            </div>
+            <button onclick="cerrarModal('modal-buscar-paciente')" class="text-gray-400 hover:text-red-500 font-bold text-2xl transition">&times;</button>
+        </div>
+
+        <div class="p-6 bg-white border-b grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="col-span-1 md:col-span-4 mb-2">
+                <input type="text" id="filtro-nombre" placeholder="Escribe el nombre del paciente..." class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:outline-none text-lg">
+            </div>
+
+            <div>
+                <label class="text-xs font-bold text-gray-500 uppercase">Clase / Curso</label>
+                <select id="filtro-curso" class="w-full p-2 border rounded bg-white text-sm focus:ring-gray-500">
+                    <option value="todos">Todos los cursos</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="text-xs font-bold text-gray-500 uppercase">Tipo de Caso</label>
+                <select id="filtro-tipo" class="w-full p-2 border rounded bg-white text-sm focus:ring-gray-500">
+                    <option value="todos">Todos los tipos</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="text-xs font-bold text-gray-500 uppercase">Visibilidad</label>
+                <select id="filtro-visibilidad" class="w-full p-2 border rounded bg-white text-sm focus:ring-gray-500">
+                    <option value="todos">Cualquier estado</option>
+                    <option value="visible">👁️ Visible (Publicado)</option>
+                    <option value="oculto">🔒 Oculto (Borrador)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="text-xs font-bold text-gray-500 uppercase">Progreso</label>
+                <select id="filtro-progreso" class="w-full p-2 border rounded bg-white text-sm focus:ring-gray-500">
+                    <option value="todos">Cualquier progreso</option>
+                    <option value="completo">✅ Terminado</option>
+                    <option value="incompleto">🚧 Incompleto</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto bg-gray-50 p-6 lista-pacientes">
+            <div id="contenedor-pacientes" class="grid grid-cols-1 gap-3">
+                </div>
+            <div id="no-resultados" class="hidden text-center py-10 text-gray-400">
+                <p class="text-4xl mb-2">😕</p>
+                <p>No se encontraron pacientes con esos filtros.</p>
+            </div>
+        </div>
+        
+        <div class="bg-gray-100 p-3 text-right text-xs text-gray-500 border-t">
+            Mostrando <span id="contador-resultados" class="font-bold">0</span> pacientes
+        </div>
+    </div>
+</div>
+
+<script id="data-pacientes" type="application/json">
+[
+    {% for p in mis_pacientes %}
+    {
+        "id": "{{ p.id }}",
+        "nombre": "{{ p.nombre }}",
+        "curso_id": "{{ p.id_curso.id }}",
+        "curso_nombre": "{{ p.id_curso.nombrecurso }}",
+        "tipo_id": "{{ p.tipo_caso.id }}",
+        "tipo_nombre": "{{ p.tipo_caso.nombre }}",
+        "visible": {% if p.visible %}true{% else %}false{% endif %},
+        "completo": {% if p.completo %}true{% else %}false{% endif %} 
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+]
+</script>
+
+<script>
+// === LOGICA GLOBAL DE MODALES ===
+function abrirModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+// === LOGICA DEL BUSCADOR DE PACIENTES ===
+let todosPacientes = [];
+
+function abrirBuscadorPacientes() {
+    // 1. Cargar datos si es la primera vez
+    if (todosPacientes.length === 0) {
+        const rawData = document.getElementById('data-pacientes').textContent;
+        try {
+            todosPacientes = JSON.parse(rawData);
+            inicializarFiltros(); // Llenar selects
+        } catch (e) {
+            console.error("Error leyendo datos de pacientes", e);
+        }
+    }
+    
+    // 2. Renderizar inicial
+    renderizarPacientes(todosPacientes);
+    
+    // 3. Mostrar modal
+    abrirModal('modal-buscar-paciente');
+    document.getElementById('filtro-nombre').focus();
+}
+
+function inicializarFiltros() {
+    // Extraer cursos únicos y tipos únicos para llenar los selects
+    const cursosMap = new Map();
+    const tiposMap = new Map();
+
+    todosPacientes.forEach(p => {
+        cursosMap.set(p.curso_id, p.curso_nombre);
+        tiposMap.set(p.tipo_id, p.tipo_nombre);
+    });
+
+    const selCurso = document.getElementById('filtro-curso');
+    cursosMap.forEach((nombre, id) => {
+        selCurso.add(new Option(nombre, id));
+    });
+
+    const selTipo = document.getElementById('filtro-tipo');
+    tiposMap.forEach((nombre, id) => {
+        selTipo.add(new Option(nombre, id));
+    });
+
+    // Agregar listeners para filtrar al cambiar cualquier cosa
+    const inputs = ['filtro-nombre', 'filtro-curso', 'filtro-tipo', 'filtro-visibilidad', 'filtro-progreso'];
+    inputs.forEach(id => {
+        document.getElementById(id).addEventListener('input', filtrarPacientes);
+    });
+}
+
+function filtrarPacientes() {
+    const texto = document.getElementById('filtro-nombre').value.toLowerCase();
+    const curso = document.getElementById('filtro-curso').value;
+    const tipo = document.getElementById('filtro-tipo').value;
+    const visibilidad = document.getElementById('filtro-visibilidad').value;
+    const progreso = document.getElementById('filtro-progreso').value;
+
+    const filtrados = todosPacientes.filter(p => {
+        // Filtro Texto
+        if (!p.nombre.toLowerCase().includes(texto)) return false;
+        
+        // Filtro Curso
+        if (curso !== 'todos' && p.curso_id !== curso) return false;
+        
+        // Filtro Tipo
+        if (tipo !== 'todos' && p.tipo_id !== tipo) return false;
+        
+        // Filtro Visibilidad
+        if (visibilidad === 'visible' && !p.visible) return false;
+        if (visibilidad === 'oculto' && p.visible) return false;
+
+        // Filtro Progreso (Requiere el campo en models, si no existe asumimos siempre true para no romper)
+        if (progreso === 'completo' && !p.completo) return false;
+        if (progreso === 'incompleto' && p.completo) return false;
+
+        return true;
+    });
+
+    renderizarPacientes(filtrados);
+}
+
+function renderizarPacientes(lista) {
+    const contenedor = document.getElementById('contenedor-pacientes');
+    const noResultados = document.getElementById('no-resultados');
+    const contador = document.getElementById('contador-resultados');
+    
+    contenedor.innerHTML = '';
+    contador.innerText = lista.length;
+
+    if (lista.length === 0) {
+        noResultados.classList.remove('hidden');
+        return;
+    }
+    noResultados.classList.add('hidden');
+
+    lista.forEach(p => {
+        // Etiquetas dinámicas
+        const badgeVisible = p.visible 
+            ? `<span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded border border-green-200">VISIBLE</span>` 
+            : `<span class="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded border border-gray-200">OCULTO</span>`;
+        
+        const badgeCompleto = p.completo
+            ? `<span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded border border-blue-200">TERMINADO</span>`
+            : `<span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded border border-yellow-200">EN PROCESO</span>`;
+
+        const card = document.createElement('div');
+        card.className = "bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition flex justify-between items-center group";
+        card.innerHTML = `
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <h4 class="font-bold text-lg text-blue-900 group-hover:text-blue-600 transition">${p.nombre}</h4>
+                    ${badgeVisible}
+                    ${badgeCompleto}
+                </div>
+                <div class="text-sm text-gray-500 flex gap-4">
+                    <span>🎓 ${p.curso_nombre}</span>
+                    <span>🏥 ${p.tipo_nombre}</span>
+                </div>
+            </div>
+            <button onclick="irConfiguracion(${p.id})" class="bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white border border-blue-200 font-bold py-2 px-6 rounded-full transition text-sm">
+                CONFIGURAR ➜
+            </button>
+        `;
+        contenedor.appendChild(card);
+    });
+}
+
+function irConfiguracion(id) {
+    window.location.href = `/cursos/configurar-etapas/${id}/`;
+}
+
+// === AJAX CREAR (Tu código existente) ===
+function enviarFormulario(formId, url) {
+    const formData = new FormData(document.getElementById('form-' + formId));
+    fetch(url, { method: 'POST', body: formData })
+    .then(r => r.json()).then(data => {
+        if(data.ok) { alert(data.msg); location.reload(); } 
+        else { alert("Error: " + data.error); }
+    });
+}
+
+// === AJAX TIPO CASO (Tu código existente) ===
+function guardarTipoCaso() {
+    const formData = new FormData(document.getElementById('form-tipo-caso'));
+    fetch("{% url 'cursos:crear_tipo_caso_ajax' %}", { method: 'POST', body: formData })
+    .then(r => r.json()).then(data => {
+        if(data.ok) {
+            alert("Tipo creado"); cerrarModal('modal-tipo-caso');
+            // Aquí podrías recargar para actualizar la lista de tipos si quisieras
+        } else { alert("Error"); }
+    });
+}
+</script>
+{% endblock %}

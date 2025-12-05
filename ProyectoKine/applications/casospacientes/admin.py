@@ -1,8 +1,7 @@
-import json
 from django import forms
 from django.contrib import admin
 from django.core.exceptions import ValidationError
-from django.utils.safestring import mark_safe
+from django.db.models import Max
 from .models import *
 
 # ==========================================
@@ -100,17 +99,51 @@ class ExploracionForm(forms.ModelForm):
             
             self.instance.id_etapa = etapa_destino
             
+            # Validar máximo 6 exploraciones
             qs = Exploracion.objects.filter(id_etapa=etapa_destino)
             if self.instance.pk: qs = qs.exclude(pk=self.instance.pk)
             
             if qs.count() >= 6:
                 raise ValidationError(f"Error: Límite de 6 exploraciones alcanzado.")
             
+            # Cálculo automático del Orden (Más seguro usando Max)
             if not self.instance.pk:
-                self.instance.orden = qs.count() + 1
+                max_orden = qs.aggregate(Max('orden'))['orden__max']
+                self.instance.orden = (max_orden or 0) + 1
 
         return cleaned_data
 
+class OpcionMultipleForm(forms.ModelForm):
+    class Meta:
+        model = OpcionMultiple
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        pregunta = cleaned_data.get('pregunta')
+        retro = cleaned_data.get('retroalimentacion')
+
+        # VALIDACIÓN 1: Retroalimentación por defecto
+        if not retro or retro.strip() == "":
+            cleaned_data['retroalimentacion'] = "No existe retroalimentación para esta respuesta aún."
+            # Importante: asignar a la instancia para que se guarde si el campo no está en cleaned_data
+            self.instance.retroalimentacion = cleaned_data['retroalimentacion']
+
+        if pregunta:
+            # VALIDACIÓN 2: Máximo 4 opciones
+            cantidad = OpcionMultiple.objects.filter(pregunta=pregunta).exclude(pk=self.instance.pk).count()
+            if cantidad >= 4:
+                raise ValidationError(f"Error: La pregunta '{pregunta.titulo}' ya tiene 4 opciones.")
+
+        return cleaned_data
+    
+    def save(self, commit=True):
+        # Aseguramos que se guarde la retroalimentación por defecto
+        instance = super().save(commit=False)
+        instance.retroalimentacion = self.cleaned_data.get('retroalimentacion', instance.retroalimentacion)
+        if commit:
+            instance.save()
+        return instance
 
 # ==========================================
 # 2. ADMINS
@@ -134,9 +167,7 @@ class EtapaAdmin(admin.ModelAdmin):
 
 class PreguntaAdmin(admin.ModelAdmin):
     form = PreguntaForm
-    # CAMBIO AQUÍ: Se eliminó 'texto' de la lista de campos
     fields = ('paciente_seleccionado', 'destino_etapa', 'titulo', 'urlvideo', 'retroalimentacion_general', 'docente')
-    
     list_display = ('get_paciente_nombre', 'titulo', 'tipo', 'urlvideo')
     list_filter = ('tipo', 'id_etapa__id_paciente')
     search_fields = ('titulo', 'id_etapa__id_paciente__nombre')
@@ -147,10 +178,14 @@ class PreguntaAdmin(admin.ModelAdmin):
     get_paciente_nombre.short_description = "Paciente"
 
 class OpcionMultipleAdmin(admin.ModelAdmin):
+    form = OpcionMultipleForm
     list_display = ('get_paciente', 'pregunta', 'texto_opcion', 'is_correct')
     list_filter = ('is_correct', 'pregunta__id_etapa__id_paciente')
-    search_fields = ('pregunta__titulo', 'texto_opcion')
+    search_fields = ('pregunta__titulo', 'texto_opcion', 'pregunta__id_etapa__id_paciente__nombre')
     list_select_related = ('pregunta', 'pregunta__id_etapa__id_paciente')
+    
+    # Usamos autocomplete para facilitar la búsqueda, ya que search_fields busca por paciente también
+    autocomplete_fields = ['pregunta']
 
     def get_paciente(self, obj):
         return obj.pregunta.id_etapa.id_paciente.nombre
@@ -186,6 +221,7 @@ class EtapaCompletadaAdmin(admin.ModelAdmin):
 
 class ExploracionAdmin(admin.ModelAdmin):
     form = ExploracionForm
+    # Asegúrate de incluir retroalimentacion_general en los fields
     fields = ('paciente_seleccionado', 'titulo', 'instruccion', 'urlvideo', 'retroalimentacion_general')
     list_display = ('get_paciente_nombre', 'titulo', 'orden', 'urlvideo')
     list_filter = ('id_etapa__id_paciente',)

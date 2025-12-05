@@ -42,7 +42,6 @@
             transform: scale(1.1);
         }
         
-        /* Efecto Hover para botones de navegación */
         .btn-nav-hover {
             transition: all 0.2s ease-in-out;
         }
@@ -68,13 +67,22 @@
                 <h1 class="text-3xl font-extrabold text-white">KineLearn</h1>
 
                 {% if request.session.rol == 'Estudiante' %}
-                <a href="{% url 'cursosestudiante:menu_estudiante' %}" 
-                   class="home-btn text-white p-2 rounded-full transition duration-300 flex items-center justify-center ml-4"
-                   title="Ir al Menú Principal">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                    </svg>
-                </a>
+                    <a href="{% url 'cursosestudiante:menu_estudiante' %}" 
+                       class="home-btn text-white p-2 rounded-full transition duration-300 flex items-center justify-center ml-4"
+                       title="Ir al Menú Estudiante">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                    </a>
+
+                {% elif request.session.rol == 'Docente' %}
+                    <a href="{% url 'cursos:menu_docente' %}" 
+                       class="home-btn text-white p-2 rounded-full transition duration-300 flex items-center justify-center ml-4"
+                       title="Ir al Menú Docente">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                    </a>
                 {% endif %}
             </div>
 
@@ -85,27 +93,15 @@
     </header>
     
     <main class="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8">
-
         {% block content %}
         <div class="w-full max-w-sm p-8 bg-white card-border shadow-2xl text-center">
-            
-            <h2 class="text-3xl font-bold text-gray-800 mb-8">
-            Bienvenido a KineLearn
-            </h2>
-            
+            <h2 class="text-3xl font-bold text-gray-800 mb-8">Bienvenido a KineLearn</h2>
             <div class="space-y-6">
-                <a href="{% url 'login:login_estudiante' %}" class="btn-primary w-full block text-white font-bold py-4 px-10 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-[1.02]">
-                    Ingresar como Estudiante
-                </a>
-                
-                <a href="{% url 'login:login_docente' %}" class="btn-primary w-full block text-white font-bold py-4 px-10 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-[1.02]">
-                Ingresar como Docente
-                </a>
+                <a href="{% url 'login:login_estudiante' %}" class="btn-primary w-full block text-white font-bold py-4 px-10 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-[1.02]">Ingresar como Estudiante</a>
+                <a href="{% url 'login:login_docente' %}" class="btn-primary w-full block text-white font-bold py-4 px-10 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-[1.02]">Ingresar como Docente</a>
             </div>
-
         </div>
         {% endblock %}
-
     </main>
 
     <footer class="mt-auto py-4 bg-gray-100 text-center text-gray-600 text-sm hidden">

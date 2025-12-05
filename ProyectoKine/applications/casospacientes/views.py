@@ -29,7 +29,7 @@ class ListaPacientesPorCursoView(ListView):
 
     def get_queryset(self):
         id_curso = self.kwargs['id_curso']
-        return Paciente.objects.filter(id_curso=id_curso)
+        return Paciente.objects.filter(id_curso=id_curso, visible=True)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

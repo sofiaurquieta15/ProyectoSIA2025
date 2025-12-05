@@ -11,4 +11,8 @@ urlpatterns = [
     path('estudiante/', views.LoginEstudianteView.as_view(), name='login_estudiante'),
     path('docente/',views.LoginDocenteView.as_view(), name='login_docente'),
     path('logout/', logout_view, name='logout'),
+
+    path('editar-perfil-docente/', views.editar_perfil_docente, name='editar_perfil_docente'),
+
+    path('editar-perfil-estudiante/', views.editar_perfil_estudiante, name='editar_perfil_estudiante'),
 ]

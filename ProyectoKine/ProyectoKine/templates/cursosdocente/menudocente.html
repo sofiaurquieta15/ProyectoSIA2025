@@ -1,7 +1,7 @@
 {% extends 'base_site.html' %}
 {% load static %}
 
-{% block title %}Menú Estudiante - KineLearn{% endblock %}
+{% block title %}Menú Docente - KineLearn{% endblock %}
 
 {% block nav_buttons %}
     <a href="{% url 'login:logout' %}"
@@ -14,72 +14,80 @@
 
 <style>
     .border-blue-custom {
-        border: 4px solid #1e3a8a;
+        border: 4px solid #1e3a8a; /* Azul oscuro institucional */
     }
-    .modal-overlay {
-        background-color: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
-    }
+    /* Animación suave para los modales */
     .fade-in { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 </style>
 
 <div class="flex-grow container mx-auto py-10 px-4 sm:px-6 lg:px-8 relative">
 
-    <button onclick="abrirModal('modal-perfil-estudiante')" 
+    <button onclick="abrirModal('modal-perfil')" 
             class="hidden lg:block absolute top-0 right-10 bg-blue-900 hover:bg-blue-800 text-white font-semibold text-lg px-6 py-2 rounded-b-lg shadow-md border-t-0 border-x-2 border-b-2 border-blue-800 transition cursor-pointer z-10"
             title="Clic para editar perfil">
-        Hola, {{ user.nombre }} {{ user.apellido }}
+        Docente: {{ user.nombre_docente }} {{ user.apellido_docente }}
     </button>
 
     <div class="text-center mb-12 mt-8">
         <h2 class="text-5xl font-extrabold text-gray-900 mb-2">
-            ¡Bienvenido a KineLearn!
+            Panel Docente
         </h2>
-        <p class="text-xl text-gray-600">Selecciona una opción para comenzar</p>
+        <p class="text-xl text-gray-600">Gestione sus cursos y evaluaciones</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center max-w-7xl mx-auto">
         
         <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
             <div>
-                <div class="text-6xl mb-4">📚</div> 
+                <div class="text-6xl mb-4">🎓</div> 
                 <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">MIS CURSOS</h3>
-                <p class="text-gray-600 text-sm">Accede a tus asignaturas y casos clínicos.</p>
+                <p class="text-gray-600 text-sm">Visualice sus asignaturas y alumnos inscritos.</p>
             </div>
-            <a href="{% url 'cursosestudiante:lista_cursos' %}" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">ACCEDER</a>
+            
+            <a href="{% url 'cursos:mis_cursos' %}" 
+               class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">
+                GESTIONAR
+            </a>
         </div>
 
         <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
             <div>
-                <div class="text-6xl mb-4">📈</div> 
-                <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">REVISAR AVANCES</h3>
-                <p class="text-gray-600 text-sm">Consulta tu progreso en tiempo real.</p>
+                <div class="text-6xl mb-4">🏥</div> 
+                <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">CASOS CLÍNICOS</h3>
+                <p class="text-gray-600 text-sm">Cree y edite pacientes, etapas y preguntas.</p>
             </div>
-            <a href="{% url 'cursosestudiante:ver_avances' %}" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">ACCEDER</a>
+
+            <a href="{% url 'cursos:gestion_casos' %}" 
+                class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">
+                GESTIONAR CASOS
+            </a>
         </div>
 
         <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
             <div>
-                <div class="text-6xl mb-4">📩</div> 
-                <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">SOLICITAR REVISIÓN</h3>
-                <p class="text-gray-600 text-sm">Envía consultas al docente sobre tus casos.</p>
+                <div class="text-6xl mb-4">✅</div> 
+                <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">REVISIONES</h3>
+                <p class="text-gray-600 text-sm">Responda a las solicitudes de retroalimentación.</p>
             </div>
-            <a href="{% url 'cursosestudiante:solicitar_revision' %}" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">ACCEDER</a>
+
+            <a href="{% url 'cursos:revisiones_docente' %}" 
+                class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">
+                VER SOLICITUDES
+            </a>
         </div>
 
     </div>
-
 </div>
 
-<div id="modal-perfil-estudiante" class="fixed inset-0 hidden z-50 flex items-center justify-center modal-overlay opacity-0 transition-opacity duration-300">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transform scale-95 transition-transform duration-300" id="modalContent">
+<div id="modal-perfil" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden fade-in relative">
         
-        <div class="bg-blue-900 px-6 py-4 rounded-t-2xl flex justify-between items-center">
+        <div class="bg-blue-900 px-6 py-4 flex justify-between items-center">
             <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                <span>👤</span> Editar Perfil Estudiante
+                <span>👤</span> Editar Perfil Docente
             </h3>
-            <button onclick="cerrarModal('modal-perfil-estudiante')" class="text-white hover:text-gray-300 text-2xl font-bold">&times;</button>
+            <button onclick="cerrarModal('modal-perfil')" class="text-white hover:text-gray-300 text-2xl font-bold">&times;</button>
         </div>
 
         <div class="p-6">
@@ -92,40 +100,42 @@
                                   {% else %}bg-red-100 text-red-700 border border-red-200{% endif %}">
                             {{ message }}
                         </div>
-                    {% endfor %}
+                        {% endfor %}
                 </div>
             {% endif %}
 
             <div id="form-datos-basicos">
-                <form action="{% url 'login:editar_perfil_estudiante' %}" method="POST">
+                <form action="{% url 'login:editar_perfil_docente' %}" method="POST">
                     {% csrf_token %}
                     <input type="hidden" name="tipo_accion" value="info">
 
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="block text-gray-700 text-xs font-bold mb-1">Nombre</label>
-                            <input type="text" name="nombre" value="{{ user.nombre }}" required
+                            <input type="text" name="nombre" value="{{ user.nombre_docente }}" required
                                    class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-900 outline-none">
                         </div>
                         <div>
                             <label class="block text-gray-700 text-xs font-bold mb-1">Apellido</label>
-                            <input type="text" name="apellido" value="{{ user.apellido }}" required
+                            <input type="text" name="apellido" value="{{ user.apellido_docente }}" required
                                    class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-900 outline-none">
                         </div>
                     </div>
 
                     <div class="mb-6">
                         <label class="block text-gray-700 text-xs font-bold mb-1">Correo Institucional</label>
-                        <input type="email" name="correo" value="{{ user.correo_institucional }}" required
+                        <input type="email" name="correo" value="{{ user.correo_docente }}" required
                                class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-900 outline-none">
                     </div>
 
                     <div class="bg-gray-50 p-4 rounded border border-gray-200 mb-4">
-                        <label class="block text-gray-600 text-xs font-bold mb-1">Contraseña Actual (Requerida)</label>
+                        <label class="block text-gray-600 text-xs font-bold mb-1">Contraseña Actual (Requerida para guardar)</label>
                         <div class="relative">
                             <input type="password" name="password_validacion" id="pass-val" required
                                    class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-900 outline-none pr-10">
-                            <button type="button" onclick="togglePass('pass-val')" class="absolute right-2 top-2 text-gray-500 hover:text-blue-900">👁️</button>
+                            <button type="button" onclick="togglePass('pass-val')" class="absolute right-2 top-2 text-gray-500 hover:text-blue-900">
+                                👁️
+                            </button>
                         </div>
                         {% for message in messages %}
                             {% if 'error_pass_info' in message.tags %}
@@ -135,22 +145,27 @@
                     </div>
 
                     <div class="flex flex-col gap-2">
-                        <button type="submit" class="bg-blue-900 text-white font-bold py-2 rounded hover:bg-blue-800 transition shadow">GUARDAR CAMBIOS</button>
-                        <button type="button" onclick="mostrarCambioPass()" class="text-blue-700 text-xs font-bold hover:underline py-2">¿Desea cambiar su contraseña?</button>
+                        <button type="submit" class="bg-blue-900 text-white font-bold py-2 rounded hover:bg-blue-800 transition shadow">
+                            GUARDAR CAMBIOS
+                        </button>
+                        <button type="button" onclick="mostrarCambioPass()" class="text-blue-700 text-xs font-bold hover:underline py-2">
+                            ¿Desea cambiar su contraseña?
+                        </button>
                     </div>
                 </form>
             </div>
 
             <div id="form-password" class="hidden">
                 <h4 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Seguridad</h4>
-                <form action="{% url 'login:editar_perfil_estudiante' %}" method="POST">
+                <form action="{% url 'login:editar_perfil_docente' %}" method="POST">
                     {% csrf_token %}
                     <input type="hidden" name="tipo_accion" value="password">
 
                     <div class="mb-4">
                         <label class="block text-gray-700 text-xs font-bold mb-1">Contraseña Actual</label>
                         <div class="relative">
-                            <input type="password" name="password_actual" id="pass-act" required class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-900 outline-none pr-10">
+                            <input type="password" name="password_actual" id="pass-act" required
+                                   class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-900 outline-none pr-10">
                             <button type="button" onclick="togglePass('pass-act')" class="absolute right-2 top-2 text-gray-500 hover:text-blue-900">👁️</button>
                         </div>
                         {% for message in messages %}
@@ -163,7 +178,8 @@
                     <div class="mb-4">
                         <label class="block text-gray-700 text-xs font-bold mb-1">Nueva Contraseña</label>
                         <div class="relative">
-                            <input type="password" name="password_nueva" id="pass-new" required class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-900 outline-none pr-10">
+                            <input type="password" name="password_nueva" id="pass-new" required
+                                   class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-900 outline-none pr-10">
                             <button type="button" onclick="togglePass('pass-new')" class="absolute right-2 top-2 text-gray-500 hover:text-blue-900">👁️</button>
                         </div>
                     </div>
@@ -171,7 +187,8 @@
                     <div class="mb-6">
                         <label class="block text-gray-700 text-xs font-bold mb-1">Confirmar Nueva Contraseña</label>
                         <div class="relative">
-                            <input type="password" name="password_confirm" id="pass-conf" required class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-900 outline-none pr-10">
+                            <input type="password" name="password_confirm" id="pass-conf" required
+                                   class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-900 outline-none pr-10">
                             <button type="button" onclick="togglePass('pass-conf')" class="absolute right-2 top-2 text-gray-500 hover:text-blue-900">👁️</button>
                         </div>
                         {% for message in messages %}
@@ -182,8 +199,12 @@
                     </div>
 
                     <div class="flex gap-2">
-                        <button type="button" onclick="ocultarCambioPass()" class="flex-1 bg-gray-300 text-gray-700 font-bold py-2 rounded hover:bg-gray-400 transition">VOLVER</button>
-                        <button type="submit" class="flex-1 bg-green-600 text-white font-bold py-2 rounded hover:bg-green-700 transition shadow">CONFIRMAR</button>
+                        <button type="button" onclick="ocultarCambioPass()" class="flex-1 bg-gray-300 text-gray-700 font-bold py-2 rounded hover:bg-gray-400 transition">
+                            VOLVER
+                        </button>
+                        <button type="submit" class="flex-1 bg-green-600 text-white font-bold py-2 rounded hover:bg-green-700 transition shadow">
+                            CONFIRMAR
+                        </button>
                     </div>
                 </form>
             </div>
@@ -193,26 +214,11 @@
 </div>
 
 <script>
-    function abrirModal(id) { 
-        const modal = document.getElementById(id);
-        const content = modal.querySelector('#modalContent');
-        modal.classList.remove('hidden');
-        setTimeout(() => {
-            modal.classList.remove('opacity-0');
-            content.classList.remove('scale-95');
-            content.classList.add('scale-100');
-        }, 10);
-    }
+    // Control de Modales
+    function abrirModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-    function cerrarModal(id) { 
-        const modal = document.getElementById(id);
-        const content = modal.querySelector('#modalContent');
-        modal.classList.add('opacity-0');
-        content.classList.remove('scale-100');
-        content.classList.add('scale-95');
-        setTimeout(() => modal.classList.add('hidden'), 300);
-    }
-
+    // Toggle formularios dentro del modal
     function mostrarCambioPass() {
         document.getElementById('form-datos-basicos').classList.add('hidden');
         document.getElementById('form-password').classList.remove('hidden');
@@ -222,14 +228,20 @@
         document.getElementById('form-datos-basicos').classList.remove('hidden');
     }
 
+    // Mostrar/Ocultar contraseña
     function togglePass(id) {
         const input = document.getElementById(id);
         input.type = input.type === "password" ? "text" : "password";
     }
 
+    // Lógica automática al cargar la página
     window.onload = function() {
+        // Verificamos si Django envió algún mensaje (Éxito o Error)
         {% if messages %}
-            abrirModal('modal-perfil-estudiante');
+            // 1. Abrimos el modal siempre que haya un mensaje para que el usuario lo vea
+            abrirModal('modal-perfil');
+
+            // 2. Revisamos si el mensaje pertenece a la pestaña de contraseña para cambiar de vista
             {% for message in messages %}
                 {% if 'error_pass_actual_cambio' in message.tags or 'error_pass_match' in message.tags %}
                     mostrarCambioPass();

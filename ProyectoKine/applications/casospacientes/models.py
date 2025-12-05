@@ -22,11 +22,11 @@ class Paciente(models.Model):
         ]
     )
     ocupacion = models.CharField("Ocupación", max_length=255)
-
     descripcion = models.TextField("Descripción del Paciente")
-
     tipo_caso = models.ForeignKey(TipoCaso, on_delete=models.CASCADE)
     id_curso = models.ForeignKey('cursosdocente.Curso', on_delete=models.CASCADE)
+    visible = models.BooleanField("Visible para estudiantes", default=False)
+    completo = models.BooleanField("Caso Terminado (3 etapas)", default=False)
 
     def __str__(self):
         return self.nombre

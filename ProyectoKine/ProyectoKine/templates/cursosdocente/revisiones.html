@@ -1,0 +1,184 @@
+{% extends 'base_site.html' %}
+{% load static %}
+
+{% block title %}Revisiones - Docente{% endblock %}
+
+{% block nav_buttons %}
+    <a href="{% url 'cursos:mis_cursos' %}" class="bg-white hover:bg-gray-200 text-blue-900 font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+        MIS CURSOS
+    </a>
+    <a href="{% url 'cursos:gestion_casos' %}" class="bg-white hover:bg-gray-200 text-blue-900 font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+        CASOS CLINICOS
+    </a>
+    <a href="{% url 'login:logout' %}" class="bg-red-600 text-white font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+        CERRAR SESIÓN
+    </a>
+{% endblock %}
+
+{% block content %}
+<style>
+    .border-blue-custom { border: 4px solid #1e3a8a; }
+    .bg-blue-custom { background-color: #1e3a8a; }
+    
+    /* Etiquetas de Estado */
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+    }
+    .status-pendiente { background-color: #fbbf24; color: #92400e; } /* Amarillo */
+    .status-respondida { background-color: #4ade80; color: #166534; } /* Verde */
+
+    /* Estilo filtros */
+    .filter-select {
+        width: 100%;
+        padding: 8px;
+        border-radius: 6px;
+        border: 1px solid #d1d5db;
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="container mx-auto py-10 px-4 max-w-6xl">
+
+    <div class="text-center mb-8">
+        <h2 class="text-3xl font-extrabold text-gray-900 uppercase">Revisiones</h2>
+        <p class="text-gray-600 text-lg">Responde a las consultas de tus estudiantes</p>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200 mb-8">
+        <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+            
+            <div>
+                <label class="block text-gray-700 font-bold text-xs mb-1">CURSO</label>
+                <select name="curso" class="filter-select">
+                    <option value="">Todos</option>
+                    {% for c in cursos_filter %}
+                        <option value="{{ c.id }}" {% if f_curso == c.id %}selected{% endif %}>{{ c.nombrecurso }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-gray-700 font-bold text-xs mb-1">ESTUDIANTE</label>
+                <select name="estudiante" class="filter-select">
+                    <option value="">Todos</option>
+                    {% for e in estudiantes_filter %}
+                        <option value="{{ e.id }}" {% if f_estudiante == e.id %}selected{% endif %}>{{ e.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-gray-700 font-bold text-xs mb-1">PACIENTE</label>
+                <select name="paciente" class="filter-select">
+                    <option value="">Todos</option>
+                    {% for p in pacientes_filter %}
+                        <option value="{{ p.id }}" {% if f_paciente == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-gray-700 font-bold text-xs mb-1">TIPO</label>
+                <select name="etapa" class="filter-select">
+                    <option value="">Todos</option>
+                    <option value="2" {% if f_etapa == 2 %}selected{% endif %}>Exploración</option>
+                    <option value="3" {% if f_etapa == 3 %}selected{% endif %}>Diagnóstico</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-gray-700 font-bold text-xs mb-1">ESTADO</label>
+                <select name="estado" class="filter-select">
+                    <option value="">Todos</option>
+                    <option value="PENDIENTE" {% if f_estado == 'PENDIENTE' %}selected{% endif %}>Pendiente</option>
+                    <option value="RESPONDIDA" {% if f_estado == 'RESPONDIDA' %}selected{% endif %}>Respondida</option>
+                </select>
+            </div>
+
+            <div class="lg:col-span-5 flex justify-end gap-2 mt-2">
+                <button type="submit" class="bg-blue-900 text-white font-bold py-2 px-6 rounded shadow hover:bg-blue-800 transition">FILTRAR</button>
+                <a href="{% url 'cursos:revisiones_docente' %}" class="bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded shadow hover:bg-gray-400 transition">LIMPIAR</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="space-y-6">
+        {% for item in solicitudes_data %}
+        <div class="bg-white rounded-lg shadow-lg border-l-8 {% if item.obj.estado == 'PENDIENTE' %}border-yellow-400{% else %}border-green-500{% endif %} overflow-hidden">
+            
+            <div class="bg-gray-50 p-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                <div>
+                    <h3 class="font-bold text-lg text-blue-900">
+                        {{ item.obj.estudiante.nombre }} 
+                        <span class="text-gray-500 font-normal text-sm">| {{ item.obj.curso.nombrecurso }}</span>
+                    </h3>
+                    <p class="text-sm text-gray-600">
+                        <strong>Paciente:</strong> {{ item.obj.paciente.nombre }} &mdash; 
+                        {% if item.obj.etapa_solicitud == 2 %}
+                            <span class="text-purple-700 font-bold">Exploración: {{ item.obj.exploracion_especifica.titulo }}</span>
+                        {% else %}
+                            <span class="text-indigo-700 font-bold">Diagnóstico Final</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="text-xs text-gray-500 mb-1">{{ item.obj.fecha_solicitud|date:"d M Y, H:i" }}</span>
+                    {% if item.obj.estado == 'PENDIENTE' %}
+                        <span class="status-badge status-pendiente">Pendiente</span>
+                    {% else %}
+                        <span class="status-badge status-respondida">Respondida</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                <div class="space-y-4">
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <p class="text-xs font-bold text-blue-800 uppercase mb-1">Respuesta del Estudiante en el Caso:</p>
+                        <p class="text-gray-800 italic">"{{ item.respuesta_original }}"</p>
+                    </div>
+
+                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+                        <p class="text-xs font-bold text-yellow-800 uppercase mb-1">Consulta / Motivo de Revisión:</p>
+                        <p class="text-gray-800 font-medium">"{{ item.obj.motivo }}"</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col h-full">
+                    {% if item.obj.estado == 'PENDIENTE' %}
+                        <form method="post" class="flex flex-col h-full">
+                            {% csrf_token %}
+                            <input type="hidden" name="solicitud_id" value="{{ item.obj.id }}">
+                            
+                            <label class="font-bold text-gray-700 mb-2">Tu Retroalimentación:</label>
+                            <textarea name="respuesta_texto" class="flex-grow w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 bg-white mb-4 resize-none" rows="4" placeholder="Escribe aquí tu respuesta para el estudiante..."></textarea>
+                            
+                            <button type="submit" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 rounded-lg shadow transition uppercase self-end w-full md:w-auto px-8">
+                                Enviar Respuesta
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="bg-green-50 p-6 rounded-lg border border-green-200 h-full flex flex-col">
+                            <p class="text-xs font-bold text-green-800 uppercase mb-2">Respuesta Enviada el {{ item.obj.fecha_respuesta|date:"d/m/Y" }}:</p>
+                            <p class="text-gray-800 text-lg">"{{ item.obj.respuesta_docente }}"</p>
+                            
+                            </div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+        {% empty %}
+            <div class="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                <p class="text-xl text-gray-500">No se encontraron solicitudes con los filtros seleccionados.</p>
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

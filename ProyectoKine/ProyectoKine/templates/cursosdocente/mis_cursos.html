@@ -1,0 +1,444 @@
+{% extends 'base_site.html' %}
+{% load static %}
+
+{% block title %}Gestión de Cursos - Docente{% endblock %}
+
+{% block nav_buttons %}
+    <a href="{% url 'cursos:gestion_casos' %}" class="bg-white hover:bg-gray-200 text-blue-900 font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+        CASOS CLÍNICOS
+    </a>
+    <a href="{% url 'cursos:revisiones_docente' %}" class="bg-white hover:bg-gray-200 text-blue-900 font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+        REVISIONES
+    </a>
+    <a href="{% url 'login:logout' %}" class="bg-red-600 text-white font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+        CERRAR SESIÓN
+    </a>
+{% endblock %}
+
+{% block content %}
+<style>
+    .border-blue-custom { border: 4px solid #1e3a8a; }
+    .text-blue-custom { color: #1e3a8a; }
+    .bg-blue-custom { background-color: #1e3a8a; }
+    
+    /* Estilo para la tarjeta de selección de curso */
+    .curso-card {
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+    }
+    .curso-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .curso-card.active {
+        background-color: #1e3a8a; /* Azul */
+        color: white;
+        border-color: #1e3a8a;
+    }
+    .curso-card.inactive {
+        background-color: white;
+        color: #1f2937; /* Gris oscuro */
+        border-color: #e5e7eb; /* Gris claro */
+    }
+    
+    /* Pestañas Dashboard */
+    .tab-paciente.active {
+        background-color: #1e3a8a;
+        color: white;
+    }
+    .tab-paciente {
+        background-color: white;
+        color: #1e3a8a;
+        border: 2px solid #1e3a8a;
+    }
+</style>
+
+<div class="container mx-auto py-10 px-4 max-w-7xl">
+
+    <div class="text-center mb-10">
+        <h2 class="text-4xl font-extrabold text-gray-900 uppercase">Gestión de Curso</h2>
+    </div>
+
+    <div class="mb-12">
+        <h3 class="text-2xl font-bold text-gray-800 mb-4 uppercase border-b-2 border-gray-200 pb-2">
+            1. Seleccionar Curso
+        </h3>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for c in cursos %}
+            <a href="?curso_id={{ c.id }}" 
+               class="curso-card p-4 rounded-lg border-2 shadow-sm flex flex-col justify-between h-24 {% if curso_activo.id == c.id %}active{% else %}inactive{% endif %}">
+                <div class="font-bold text-lg truncate" title="{{ c.nombrecurso }}">
+                    {{ c.nombrecurso }}
+                </div>
+                <div class="text-xs opacity-80 flex justify-between items-end">
+                    <span>Creado: {{ c.fechacreacion|date:"d/m/y" }}</span>
+                    {% if curso_activo.id == c.id %}
+                        <span class="font-bold text-xl">●</span>
+                    {% endif %}
+                </div>
+            </a>
+            {% empty %}
+            <div class="col-span-4 text-center text-gray-500 italic p-6 bg-white rounded shadow">
+                No tienes cursos creados actualmente.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if curso_activo %}
+
+        <div class="mb-12">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 uppercase border-b-2 border-gray-200 pb-2">
+                2. Progreso Global: <span class="text-blue-900">{{ curso_activo.nombrecurso }}</span>
+            </h3>
+
+            <div class="bg-white rounded-lg shadow-lg border-blue-custom p-6">
+                <div class="flex flex-col md:flex-row gap-8 items-center">
+                    
+                    <div class="w-full md:w-1/3 flex flex-col items-center border-b md:border-b-0 md:border-r border-gray-200 pb-6 md:pb-0">
+                        <h4 class="text-lg font-bold text-gray-700 mb-4 uppercase">Finalización</h4>
+                        <div class="relative w-40 h-40">
+                            <svg viewBox="0 0 36 36" class="w-full h-full block">
+                                <path class="text-gray-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.8" />
+                                <path class="text-blue-900 transition-all duration-1000 ease-out" 
+                                      stroke-dasharray="{{ curso_stats.porcentaje_global }}, 100" 
+                                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
+                                      fill="none" stroke="currentColor" stroke-width="3.8" />
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-4xl font-bold text-blue-900">{{ curso_stats.porcentaje_global }}%</span>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-gray-600 text-sm text-center">
+                            <strong>{{ curso_stats.completados }}</strong> de <strong>{{ curso_stats.total_estudiantes }}</strong> estudiantes completaron el curso.
+                        </p>
+                    </div>
+
+                    <div class="w-full md:w-2/3">
+                        <h4 class="text-lg font-bold text-gray-700 mb-4 uppercase text-center md:text-left">Estadísticas por Paciente</h4>
+                        
+                        <div class="flex flex-wrap gap-2 mb-4 justify-center md:justify-start">
+                            {% for p in pacientes_global_stats %}
+                            <button onclick="verStatsPaciente('p-stats-{{ p.id }}', this)"
+                                    class="tab-paciente px-4 py-1 rounded-full font-bold text-xs transition shadow-sm {% if forloop.first %}active{% endif %}">
+                                {{ p.nombre }}
+                            </button>
+                            {% empty %}
+                            <p class="text-gray-500 italic">No hay pacientes configurados.</p>
+                            {% endfor %}
+                        </div>
+
+                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 min-h-[150px]">
+                            {% for p in pacientes_global_stats %}
+                            <div id="p-stats-{{ p.id }}" class="paciente-stats-content {% if not forloop.first %}hidden{% endif %}">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    {% for etapa in p.etapas %}
+                                    <div class="bg-white p-3 rounded shadow-sm border-l-4 border-blue-900">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <span class="font-bold text-blue-900 text-xs">ETAPA {{ etapa.num }}</span>
+                                            {% if etapa.solicitudes > 0 %}
+                                            <span class="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-yellow-200" title="Solicitudes de Revisión">
+                                                📩 {{ etapa.solicitudes }}
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ etapa.porcentaje }}%"></div>
+                                        </div>
+                                        <p class="text-[10px] text-gray-500 text-right font-bold">{{ etapa.porcentaje }}% aprobada</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="flex flex-col md:flex-row justify-between items-end mb-4 border-b-2 border-gray-200 pb-2 gap-4">
+                <h3 class="text-2xl font-bold text-gray-800 uppercase">
+                    3. Detalle de Estudiantes
+                </h3>
+                
+                <button onclick="abrirModalEnrolar()" 
+                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-full shadow-lg flex items-center gap-2 transition text-sm uppercase">
+                    <span class="text-lg font-extrabold">+</span> Enrolar nuevo estudiante
+                </button>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg border-blue-custom p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-gray-600 border-b border-gray-300">
+                                <th class="py-3 px-4 font-bold">Nombre Estudiante</th>
+                                <th class="py-3 px-4 font-bold">Correo</th>
+                                <th class="py-3 px-4 font-bold text-center">Progreso Individual</th>
+                                <th class="py-3 px-4 font-bold text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-700">
+                            {% for item in estudiantes_data %}
+                            <tr class="border-b border-gray-100 hover:bg-blue-50 transition">
+                                <td class="py-4 px-4 font-semibold">{{ item.obj.nombre }}</td>
+                                <td class="py-4 px-4 text-sm">{{ item.obj.correo_institucional }}</td>
+                                <td class="py-4 px-4">
+                                    <div class="flex items-center gap-3 justify-center">
+                                        <div class="w-32 bg-gray-200 rounded-full h-4">
+                                            <div class="bg-blue-600 h-4 rounded-full" style="width: {{ item.porcentaje }}%"></div>
+                                        </div>
+                                        <span class="font-bold text-sm w-8">{{ item.porcentaje }}%</span>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-4 text-center">
+                                    <div class="flex justify-center items-center gap-2">
+                                        <button onclick="abrirModalDetalle('{{ item.json_id }}')" 
+                                                class="bg-blue-custom hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-full text-xs uppercase shadow transition">
+                                            Detalle
+                                        </button>
+                                        <button onclick="desenrolarEstudiante('{{ item.obj.correo_institucional }}')"
+                                                class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-full text-xs shadow transition"
+                                                title="Desenrolar del curso">
+                                            ✕
+                                        </button>
+                                    </div>
+                                    {{ item.pacientes|json_script:item.json_id }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="py-12 text-center text-gray-500 text-lg">
+                                    No hay estudiantes inscritos en este curso.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    {% else %}
+        <div class="text-center py-20">
+            <p class="text-gray-500 text-xl">Selecciona un curso arriba para ver la información.</p>
+        </div>
+    {% endif %}
+
+</div>
+
+<div id="modal-enrolar" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 px-4">
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-blue-custom relative">
+        <button onclick="document.getElementById('modal-enrolar').classList.add('hidden')" class="absolute top-4 right-4 text-gray-500 hover:text-red-600 font-bold text-xl">&times;</button>
+        
+        <h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">Enrolar Estudiante</h3>
+        
+        <div class="mb-6">
+            <label class="block text-gray-700 font-bold mb-2">Correo Institucional</label>
+            <input type="email" id="correo-enrolar" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900" placeholder="ejemplo@alumnos.ucn.cl">
+        </div>
+
+        <button onclick="enviarEnrolamiento()" class="w-full bg-blue-custom hover:bg-blue-800 text-white font-bold py-3 rounded-full transition shadow-lg uppercase">
+            CONFIRMAR ENROLAMIENTO
+        </button>
+        
+        <p id="msg-enrolar" class="mt-4 text-center text-sm font-bold"></p>
+    </div>
+</div>
+
+<div id="modal-detalle" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 px-4">
+    <div class="bg-white p-0 rounded-xl shadow-2xl w-full max-w-3xl border-blue-custom relative overflow-hidden flex flex-col max-h-[90vh]">
+        
+        <div class="bg-blue-custom p-4 flex justify-between items-center">
+            <h3 class="text-xl font-bold text-white">Progreso del Estudiante</h3>
+            <button onclick="document.getElementById('modal-detalle').classList.add('hidden')" class="text-white hover:text-gray-300 font-bold text-2xl">&times;</button>
+        </div>
+
+        <div class="p-8 overflow-y-auto bg-gray-50 flex-grow" id="contenido-detalle">
+            </div>
+        
+        <div class="p-4 bg-white border-t text-center">
+            <button onclick="document.getElementById('modal-detalle').classList.add('hidden')" class="px-8 py-2 bg-gray-500 text-white rounded-full hover:bg-gray-600 font-bold uppercase shadow">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-desenrolar" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 backdrop-blur-sm transition-opacity">
+    <div class="bg-white rounded-2xl shadow-2xl w-96 text-center transform scale-100 transition-transform border-t-8 border-red-600 p-6">
+        
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4 animate-pulse">
+            <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+            </svg>
+        </div>
+
+        <h3 class="text-xl font-extrabold text-gray-900 mb-2">¿Desenrolar Estudiante?</h3>
+        
+        <div class="bg-red-50 p-3 rounded-lg border border-red-100 mb-6 text-left">
+            <p class="text-xs text-gray-500 font-bold uppercase mb-1">Estudiante:</p>
+            <p id="texto-correo-desenrolar" class="text-sm font-bold text-red-800 mb-3 break-all">...</p>
+            
+            <p class="text-xs text-red-600 leading-tight">
+                ⚠️ <strong>Advertencia:</strong> Se eliminará todo el progreso, respuestas y solicitudes de este alumno en el curso actual.
+            </p>
+        </div>
+        
+        <div class="flex gap-3 justify-center">
+            <button onclick="document.getElementById('modal-desenrolar').classList.add('hidden')" 
+                    class="flex-1 bg-white hover:bg-gray-100 text-gray-700 font-bold py-2 px-4 rounded-lg border border-gray-300 shadow-sm transition text-xs uppercase">
+                Cancelar
+            </button>
+            <button onclick="confirmarDesenrolar()" 
+                    class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition text-xs uppercase">
+                Sí, Eliminar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let cursoIdActual = "{{ curso_activo.id }}";
+
+// === TABS DASHBOARD ===
+function verStatsPaciente(targetId, btn) {
+    const contenidos = document.getElementsByClassName('paciente-stats-content');
+    for(let div of contenidos) div.classList.add('hidden');
+    
+    document.getElementById(targetId).classList.remove('hidden');
+
+    const botones = btn.parentElement.querySelectorAll('.tab-paciente');
+    botones.forEach(b => {
+        b.classList.remove('active');
+    });
+    btn.classList.add('active');
+}
+
+// === ENROLAR ===
+function abrirModalEnrolar() {
+    document.getElementById('msg-enrolar').innerText = "";
+    document.getElementById('correo-enrolar').value = "";
+    document.getElementById('modal-enrolar').classList.remove('hidden');
+}
+
+function enviarEnrolamiento() {
+    const correo = document.getElementById('correo-enrolar').value;
+    const msg = document.getElementById('msg-enrolar');
+    
+    if(!correo) {
+        msg.innerText = "Ingresa un correo.";
+        msg.className = "mt-4 text-center text-sm font-bold text-red-600";
+        return;
+    }
+
+    fetch("{% url 'cursos:enrolar_estudiante' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/x-www-form-urlencoded" },
+        body: `curso_id=${cursoIdActual}&correo_estudiante=${correo}`
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.ok) {
+            msg.innerText = data.msg;
+            msg.className = "mt-4 text-center text-sm font-bold text-green-600";
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            msg.innerText = data.error;
+            msg.className = "mt-4 text-center text-sm font-bold text-red-600";
+        }
+    });
+}
+
+// === DESENROLAR ===
+let correoADesenrolar = "";
+
+// 1. Función que se llama al hacer click en la X
+function desenrolarEstudiante(correo) {
+    correoADesenrolar = correo;
+    // Actualizamos el texto del modal
+    document.getElementById('texto-correo-desenrolar').innerText = correo;
+    // Mostramos el modal bonito
+    document.getElementById('modal-desenrolar').classList.remove('hidden');
+}
+
+// 2. Función que se llama al confirmar en el modal
+function confirmarDesenrolar() {
+    // Ocultar modal
+    document.getElementById('modal-desenrolar').classList.add('hidden');
+
+    // Hacer la petición real
+    fetch("{% url 'cursos:desenrolar_estudiante' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/x-www-form-urlencoded" },
+        body: `curso_id=${cursoIdActual}&correo_estudiante=${correoADesenrolar}`
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.ok) {
+            // Usamos un alert simple para notificar éxito rápido, o puedes hacer un reload directo
+            location.reload();
+        } else {
+            alert("Error: " + data.error);
+        }
+    })
+    .catch(e => alert("Error de conexión al intentar desenrolar."));
+}
+
+// === DETALLE INDIVIDUAL ===
+function abrirModalDetalle(scriptId) {
+    const container = document.getElementById('contenido-detalle');
+    container.innerHTML = ""; 
+
+    try {
+        const scriptTag = document.getElementById(scriptId);
+        if (!scriptTag) throw new Error("Datos no encontrados");
+        
+        const dataPacientes = JSON.parse(scriptTag.textContent);
+
+        if (!dataPacientes || dataPacientes.length === 0) {
+            container.innerHTML = `<p class="text-center text-gray-500 text-lg">Este estudiante no tiene progreso registrado.</p>`;
+        } else {
+            let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
+            
+            dataPacientes.forEach(p => {
+                html += `
+                <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+                    <h4 class="font-bold text-blue-900 text-lg mb-3 border-b pb-2 uppercase">${p.nombre}</h4>
+                    <div class="space-y-2">
+                `;
+                
+                p.etapas.forEach(e => {
+                    let badgeClass = e.completada 
+                        ? "bg-green-100 text-green-700 border-green-200" 
+                        : "bg-gray-100 text-gray-500 border-gray-200";
+                    let icon = e.completada ? "✔" : "○";
+                    
+                    html += `
+                        <div class="flex justify-between items-center p-2 rounded border ${badgeClass}">
+                            <div class="flex flex-col">
+                                <span class="font-bold text-xs">ETAPA ${e.num}</span>
+                                <span class="text-xs">${e.nombre}</span>
+                            </div>
+                            <span class="font-bold text-lg block">${icon}</span>
+                        </div>
+                    `;
+                });
+                
+                html += `</div></div>`;
+            });
+            
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<p class="text-red-500 text-center">Error al cargar los datos.</p>`;
+    }
+
+    document.getElementById('modal-detalle').classList.remove('hidden');
+}
+</script>
+
+{% endblock %}

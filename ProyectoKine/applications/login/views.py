@@ -6,7 +6,8 @@ from .models import Estudiante, Docente
 from .forms import LoginForm
 from django.urls import reverse_lazy, reverse
 from django.contrib.auth import logout
-from django.shortcuts import redirect
+from django.views.decorators.http import require_POST
+from django.contrib import messages
 
 # Create your views here.
 
@@ -64,12 +65,12 @@ class LoginView(FormView):
                 self.request.session['estudiante_id'] = usuario.id
                 return redirect('cursosestudiante:menu_estudiante')
 
-            # Docente → vista de cursos docente
+            # CAMBIO AQUÍ: Docente → Menú Docente
             if self.rol == 'Docente':
-                return redirect(reverse('cursos:listado_cursos'))
+                return redirect('cursos:menu_docente')
 
             # fallback
-            return redirect(reverse('cursos:lista_cursos'))
+            return redirect('cursos:menu_docente')
 
         # Si falló autenticación
         form.add_error(None, 'Correo o contraseña incorrectos.')
@@ -83,6 +84,108 @@ class LoginEstudianteView(LoginView):
 class LoginDocenteView(LoginView):
     rol = 'Docente'
 
+
 def logout_view(request):
-    logout(request)  # Elimina los datos de sesión
-    return redirect(reverse('login:login_estudiante'))
+    logout(request)  # Elimina la sesión del usuario
+    return redirect(reverse('login:inicio'))
+
+@require_POST
+def editar_perfil_docente(request):
+    usuario_id = request.session.get('usuario_id')
+    if not usuario_id or request.session.get('rol') != 'Docente':
+        return redirect('login:login_docente')
+
+    try:
+        docente = Docente.objects.get(id=usuario_id)
+        tipo_accion = request.POST.get('tipo_accion') # 'info' o 'password'
+
+        # --- CASO 1: ACTUALIZAR INFORMACIÓN BÁSICA ---
+        if tipo_accion == 'info':
+            pass_confirmacion = request.POST.get('password_validacion')
+            
+            # Validar contraseña actual obligatoria
+            if docente.passw_docente != pass_confirmacion:
+                messages.error(request, "La contraseña es incorrecta", extra_tags='error_pass_info')
+            else:
+                # Guardar cambios
+                docente.nombre_docente = request.POST.get('nombre')
+                docente.apellido_docente = request.POST.get('apellido')
+                docente.correo_docente = request.POST.get('correo') 
+                docente.save()
+                messages.success(request, "Datos actualizados correctamente")
+
+        # --- CASO 2: CAMBIAR CONTRASEÑA ---
+        elif tipo_accion == 'password':
+            pass_actual = request.POST.get('password_actual')
+            pass_nueva = request.POST.get('password_nueva')
+            pass_confirm = request.POST.get('password_confirm')
+
+            error = False
+            
+            # 1. Validar contraseña actual
+            if docente.passw_docente != pass_actual:
+                messages.error(request, "La contraseña es incorrecta", extra_tags='error_pass_actual_cambio')
+                error = True
+            
+            # 2. Validar coincidencia de nuevas
+            if pass_nueva != pass_confirm:
+                messages.error(request, "Las contraseñas no coinciden", extra_tags='error_pass_match')
+                error = True
+
+            if not error:
+                docente.passw_docente = pass_nueva
+                docente.save()
+                messages.success(request, "Contraseña cambiada con éxito")
+
+    except Docente.DoesNotExist:
+        pass
+
+    return redirect('cursos:menu_docente')
+
+@require_POST
+def editar_perfil_estudiante(request):
+    usuario_id = request.session.get('usuario_id')
+    if not usuario_id or request.session.get('rol') != 'Estudiante':
+        return redirect('login:login_estudiante')
+
+    try:
+        estudiante = Estudiante.objects.get(id=usuario_id)
+        tipo_accion = request.POST.get('tipo_accion')
+
+        # --- CASO 1: ACTUALIZAR DATOS ---
+        if tipo_accion == 'info':
+            pass_confirmacion = request.POST.get('password_validacion')
+            
+            if estudiante.passw_estudiante != pass_confirmacion:
+                messages.error(request, "La contraseña es incorrecta", extra_tags='error_pass_info')
+            else:
+                estudiante.nombre = request.POST.get('nombre')
+                estudiante.apellido = request.POST.get('apellido')
+                estudiante.correo_institucional = request.POST.get('correo')
+                estudiante.save()
+                messages.success(request, "Datos actualizados correctamente")
+
+        # --- CASO 2: CAMBIAR CONTRASEÑA ---
+        elif tipo_accion == 'password':
+            pass_actual = request.POST.get('password_actual')
+            pass_nueva = request.POST.get('password_nueva')
+            pass_confirm = request.POST.get('password_confirm')
+
+            error = False
+            if estudiante.passw_estudiante != pass_actual:
+                messages.error(request, "La contraseña es incorrecta", extra_tags='error_pass_actual_cambio')
+                error = True
+            
+            if pass_nueva != pass_confirm:
+                messages.error(request, "Las contraseñas no coinciden", extra_tags='error_pass_match')
+                error = True
+
+            if not error:
+                estudiante.passw_estudiante = pass_nueva
+                estudiante.save()
+                messages.success(request, "Contraseña cambiada con éxito")
+
+    except Estudiante.DoesNotExist:
+        pass
+
+    return redirect('cursosestudiante:menu_estudiante')

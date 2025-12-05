@@ -1,0 +1,538 @@
+{% extends 'base_site.html' %}
+{% load static %}
+
+{% block title %}Configurar Etapas - {{ paciente.nombre }}{% endblock %}
+
+{% block nav_buttons %}
+    <a href="{% url 'cursos:mis_cursos' %}" class="bg-white hover:bg-gray-200 text-blue-900 font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+        MIS CURSOS
+    </a>
+    <a href="{% url 'cursos:revisiones_docente' %}" class="bg-white hover:bg-gray-200 text-blue-900 font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+        REVISIONES
+    </a>
+    <a href="{% url 'login:logout' %}" class="bg-red-600 text-white font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
+        CERRAR SESIÓN
+    </a>
+{% endblock %}
+
+{% block content %}
+<style>
+    .tab-btn { transition: all 0.3s; border-bottom: 4px solid transparent; }
+    .tab-active { border-color: #1e3a8a; color: #1e3a8a; font-weight: bold; }
+    .tab-disabled { color: #9ca3af; cursor: not-allowed; background-color: #f3f4f6; }
+    .bloque-etapa { display: none; animation: fadeIn 0.5s; }
+    .bloque-activo { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+</style>
+
+<div class="container mx-auto py-8 px-4 max-w-6xl">
+
+    <div class="flex justify-between items-end mb-8 border-b border-gray-300 pb-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-gray-900 uppercase tracking-tight">Configuración de Caso</h1>
+            <div class="flex items-center gap-3 mt-2">
+                <h2 class="text-xl text-gray-600 font-medium">
+                    Paciente: <span class="text-blue-900 font-bold uppercase">{{ paciente.nombre }}</span>
+                </h2>
+                
+                {% if caso_listo %}
+                    <button onclick="toggleVisibilidad({{ paciente.id }})" 
+                            id="btn-visibilidad"
+                            class="text-xs font-bold py-1 px-3 rounded border transition shadow-sm flex items-center gap-1
+                            {% if paciente.visible %}
+                                bg-yellow-100 hover:bg-yellow-500 hover:text-white text-yellow-800 border-yellow-300
+                            {% else %}
+                                bg-green-100 hover:bg-green-600 hover:text-white text-green-800 border-green-300
+                            {% endif %}">
+                        {% if paciente.visible %}
+                            👁️ OCULTAR
+                        {% else %}
+                            🚀 PUBLICAR
+                        {% endif %}
+                    </button>
+                {% else %}
+                    <button disabled 
+                            class="bg-gray-100 text-gray-400 text-xs font-bold py-1 px-3 rounded border border-gray-200 cursor-not-allowed flex items-center gap-1"
+                            title="Completa las 3 etapas para habilitar">
+                        🚫 PUBLICAR
+                    </button>
+                {% endif %}
+
+                <button onclick="abrirModal('modal-editar-paciente')" 
+                        class="bg-blue-100 hover:bg-blue-600 hover:text-white text-blue-700 text-xs font-bold py-1 px-3 rounded border border-blue-200 transition shadow-sm flex items-center gap-1">
+                    ✏️ EDITAR PACIENTE
+                </button>
+
+                <button onclick="abrirModalRegistros()" class="bg-orange-100 hover:bg-orange-600 hover:text-white text-orange-700 text-xs font-bold py-1 px-3 rounded border border-orange-200 transition shadow-sm flex items-center gap-1">
+                    📝 ELIMINAR REGISTROS
+                </button>
+
+                <button onclick="solicitarEliminar('paciente', {{ paciente.id }})" class="bg-red-100 hover:bg-red-600 hover:text-white text-red-700 text-xs font-bold py-1 px-3 rounded border border-red-200 transition shadow-sm flex items-center gap-1">
+                    🗑️ ELIMINAR
+                </button>
+            </div>
+        </div>
+        <a href="{% url 'cursos:gestion_casos' %}" class="bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 font-bold py-2 px-4 rounded-full text-sm transition shadow-sm">
+            ← VOLVER A GESTIÓN
+        </a>
+    </div>
+
+    <div class="flex mb-8 bg-white rounded-lg shadow overflow-hidden">
+        <button onclick="mostrarTab(1)" id="btn-tab-1" class="tab-btn tab-active flex-1 py-4 text-center focus:outline-none hover:bg-gray-50">
+            ETAPA 1: Historia {% if etapa1_completa %}✅{% endif %}
+        </button>
+        <button {% if etapa1_completa %}onclick="mostrarTab(2)"{% endif %} id="btn-tab-2" class="tab-btn flex-1 py-4 text-center focus:outline-none {% if not etapa1_completa %}tab-disabled{% else %}hover:bg-gray-50{% endif %}">
+            ETAPA 2: Exploración {% if not etapa1_completa %}🔒{% elif etapa2_completa %}✅{% endif %}
+        </button>
+        <button {% if etapa2_completa %}onclick="mostrarTab(3)"{% endif %} id="btn-tab-3" class="tab-btn flex-1 py-4 text-center focus:outline-none {% if not etapa2_completa %}tab-disabled{% else %}hover:bg-gray-50{% endif %}">
+            ETAPA 3: Diagnóstico {% if not etapa2_completa %}🔒{% elif diagnostico_e3 %}✅{% endif %}
+        </button>
+    </div>
+
+    <div id="etapa-1" class="bloque-etapa bloque-activo">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div class="lg:col-span-1 space-y-4">
+                <h3 class="font-bold text-lg text-gray-700 border-b pb-2 mb-4">Preguntas Guardadas</h3>
+                {% for preg in preguntas_e1 %}
+                <div class="bg-white p-4 rounded shadow border-l-4 border-blue-900 relative group">
+                    <h4 class="font-bold text-blue-900 text-sm mb-1">{{ preg.titulo }}</h4>
+                    {% if preg.urlvideo %}
+                        <a href="{{ preg.urlvideo }}" target="_blank" class="text-xs text-blue-500 hover:underline block mb-2">📹 Ver Video</a>
+                    {% endif %}
+                    <div class="flex gap-2 mt-3 border-t pt-2">
+                        <button onclick="editarPregunta({{ preg.id }})" class="flex-1 bg-yellow-100 text-yellow-800 text-xs font-bold py-1 rounded transition">✏️ EDITAR</button>
+                        <button onclick="solicitarEliminar('pregunta', {{ preg.id }})" class="flex-1 bg-red-100 text-red-800 text-xs font-bold py-1 rounded transition">🗑️ BORRAR</button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="bg-gray-100 p-4 rounded text-center text-gray-500 text-sm italic">No hay preguntas creadas.</div>
+                {% endfor %}
+            </div>
+
+            <div class="lg:col-span-2">
+                <div class="bg-blue-50 p-8 rounded border border-blue-100 shadow-sm sticky top-4">
+                    <h4 class="font-bold text-blue-800 mb-6 uppercase text-lg border-b border-blue-200 pb-2"><span id="titulo-form-pregunta">Añadir Nueva Pregunta</span></h4>
+                    <form id="form-pregunta" onsubmit="guardarPregunta(event)">
+                        {% csrf_token %}
+                        <input type="hidden" name="etapa_id" value="{{ etapa1.id }}">
+                        <input type="hidden" name="pregunta_id" id="edit-pregunta-id" value=""> 
+                        
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-1">URL Video</label>
+                            <input type="url" name="video_url" id="input-video" class="w-full p-2 border rounded">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Enunciado</label>
+                            <input type="text" name="texto_pregunta" id="input-titulo" required class="w-full p-2 border rounded font-bold">
+                        </div>
+                        
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Alternativas y Retroalimentación</label>
+                        <div class="space-y-3 mb-6">
+                            {% for i in "1234" %}
+                            <div class="flex items-start gap-3 bg-white p-3 rounded border border-gray-200">
+                                <div class="pt-2"><input type="radio" name="correcta_index" value="{{ i }}" required></div>
+                                <div class="w-full space-y-2">
+                                    <input type="text" name="respuesta_{{ i }}" id="resp-{{ i }}" required placeholder="Opción {{ i }}" class="w-full p-1 border rounded text-sm">
+                                    <input type="text" name="retro_{{ i }}" id="retro-{{ i }}" placeholder="Retroalimentación" class="w-full p-1 border-b border-gray-300 text-xs text-gray-600 italic">
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button type="submit" class="bg-blue-900 text-white font-bold py-3 px-6 rounded flex-1 hover:bg-blue-800 shadow uppercase transition">Guardar</button>
+                            <button type="button" onclick="resetFormPregunta()" class="bg-gray-400 text-white font-bold py-3 px-6 rounded hidden" id="btn-cancelar-edit">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="etapa-2" class="bloque-etapa hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div class="lg:col-span-1 space-y-4">
+                <h3 class="font-bold text-lg text-gray-700 border-b pb-2 mb-4">Exploraciones</h3>
+                {% for exp in exploraciones_e2 %}
+                <div class="bg-white p-4 rounded shadow border-l-4 border-green-600 relative group transition hover:shadow-md">
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="font-bold text-gray-800 text-sm">#{{ exp.orden }} - {{ exp.titulo }}</h4>
+                        {% if exp.urlvideo %}
+                            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">📹 Video OK</span>
+                        {% else %}
+                            <span class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">⚠️ Sin Video</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-gray-600 mb-1"><strong>Instrucción:</strong> {{ exp.instruccion|truncatechars:60 }}</p>
+                    {% if exp.retroalimentacion_general %}
+                    <p class="text-xs text-gray-500 italic mb-2"><strong>Retro:</strong> {{ exp.retroalimentacion_general|truncatechars:50 }}</p>
+                    {% endif %}
+                    <div class="flex gap-2 mt-3 border-t pt-2">
+                        <button onclick="editarExploracion({{ exp.id }})" class="flex-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 text-xs font-bold py-1.5 rounded transition border border-yellow-200">✏️ EDITAR</button>
+                        <button onclick="solicitarEliminar('exploracion', {{ exp.id }})" class="flex-1 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold py-1.5 rounded transition border border-red-200">🗑️ BORRAR</button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="bg-gray-100 p-6 rounded text-center text-gray-500 text-sm border-dashed border-2 border-gray-300">
+                    <p>No hay exploraciones creadas.</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="lg:col-span-2">
+                <div class="bg-green-50 p-8 rounded border border-green-100 shadow-sm sticky top-4">
+                    <h4 class="font-bold text-green-800 mb-6 uppercase text-lg border-b border-green-200 pb-2"><span id="titulo-form-exploracion">Nueva Exploración</span></h4>
+                    <form id="form-exploracion" onsubmit="guardarExploracion(event)">
+                        {% csrf_token %}
+                        <input type="hidden" name="etapa_id" value="{{ etapa2.id }}">
+                        <input type="hidden" name="exploracion_id" id="edit-exploracion-id" value="">
+                        
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Título</label>
+                            <input type="text" name="nombre_exploracion" id="input-exp-nombre" required class="w-full p-2 border rounded">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Instrucción</label>
+                            <textarea name="indicacion_exploracion" id="input-exp-indicacion" required rows="2" class="w-full p-2 border rounded"></textarea>
+                        </div>
+                        <div class="mb-4 bg-yellow-50/50 p-3 rounded">
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Retroalimentación</label>
+                            <textarea name="retro_exploracion" id="input-exp-retro" rows="2" class="w-full p-2 border rounded"></textarea>
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-gray-700 text-sm font-bold mb-1">URL Video</label>
+                            <input type="url" name="video_url" id="input-exp-video" required class="w-full p-2 border rounded">
+                        </div>
+                        <div class="flex gap-3 pt-4 border-t border-green-200">
+                            <button type="submit" class="bg-green-700 text-white font-bold py-3 px-6 rounded flex-1 hover:bg-green-800 shadow uppercase transition transform hover:scale-[1.01]">Guardar</button>
+                            <button type="button" onclick="resetFormExploracion()" class="bg-gray-400 text-white font-bold py-3 px-6 rounded hover:bg-gray-500 shadow uppercase transition" style="display:none;" id="btn-cancelar-exp">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="etapa-3" class="bloque-etapa hidden mt-8 border-t-2 border-gray-100 pt-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div class="lg:col-span-1 space-y-4">
+                <h3 class="font-bold text-lg text-gray-700 border-b pb-2 mb-4">Diagnóstico</h3>
+                {% if diagnostico_e3 %}
+                <div class="p-4 bg-purple-50 rounded border border-purple-200 relative group shadow-sm transition hover:shadow-md">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-[10px] font-bold bg-purple-200 text-purple-800 px-2 py-1 rounded uppercase">Diagnóstico Final</span>
+                        {% if diagnostico_e3.urlvideo %}
+                            <span class="text-[10px] bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded">📹 Video OK</span>
+                        {% else %}
+                            <span class="text-[10px] bg-red-200 text-red-800 px-1.5 py-0.5 rounded">⚠️ Sin Video</span>
+                        {% endif %}
+                    </div>
+                    <h4 class="font-bold text-gray-800 mb-2 text-sm">{{ diagnostico_e3.titulo }}</h4>
+                    {% if diagnostico_e3.retroalimentacion_general %}
+                    <div class="bg-white p-2 rounded border border-purple-100 mb-3">
+                        <p class="text-[10px] text-gray-500 font-bold uppercase mb-1">Retroalimentación:</p>
+                        <p class="text-sm text-gray-700 italic">"{{ diagnostico_e3.retroalimentacion_general|default:"Sin retroalimentación"|truncatechars:80 }}"</p>
+                    </div>
+                    {% endif %}
+                    <div class="flex gap-2 mt-2 border-t border-purple-200 pt-2">
+                        <button onclick="editarDiagnostico({{ diagnostico_e3.id }})" class="w-full bg-yellow-100 text-yellow-700 py-1.5 rounded text-xs font-bold border border-yellow-300 hover:bg-yellow-200 transition">EDITAR</button>
+                        <button onclick="solicitarEliminar('diagnostico', {{ diagnostico_e3.id }})" class="w-full bg-red-100 text-red-700 py-1.5 rounded text-xs font-bold border border-red-300 hover:bg-red-200 transition">BORRAR</button>
+                    </div>
+                </div>
+                {% else %}
+                <div class="flex flex-col items-center justify-center h-40 border-2 border-dashed border-gray-300 rounded bg-gray-50 text-gray-400">
+                    <p class="text-sm font-medium">No configurado</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="lg:col-span-2">
+                <div class="bg-purple-50 p-8 rounded border border-purple-100 shadow-sm sticky top-4">
+                    <h4 class="font-bold text-purple-800 mb-6 uppercase text-lg border-b border-purple-200 pb-2 flex justify-between items-center">
+                        <span id="titulo-form-diag">Configurar Diagnóstico</span>
+                        <span class="text-xs font-normal bg-purple-200 text-purple-800 px-2 py-1 rounded">Etapa 3</span>
+                    </h4>
+                    
+                    {% if diagnostico_e3 %} 
+                    <div id="aviso-limite" class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4 text-sm rounded shadow-sm">
+                        <p class="font-bold">Diagnóstico Definido</p>
+                        <p class="text-sm">Ya existe una pregunta de diagnóstico. Utiliza el botón <strong>"Editar"</strong> de la tarjeta izquierda para modificarla.</p>
+                    </div>
+                    {% endif %}
+
+                    <form id="form-diagnostico" onsubmit="guardarDiagnostico(event)" class="{% if diagnostico_e3 %}opacity-50 pointer-events-none{% endif %} transition-opacity duration-300 block">
+                        {% csrf_token %}
+                        <input type="hidden" name="etapa_id" value="{{ etapa3.id }}">
+                        <input type="hidden" name="pregunta_id" id="edit-diag-id" value="">
+
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Video Cierre</label>
+                            <input type="url" name="video_url" id="input-diag-video" class="w-full p-2 border rounded bg-white">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Pregunta Diagnóstico</label>
+                            <input type="text" name="titulo_diagnostico" id="input-diag-titulo" required class="w-full p-2 border rounded bg-white">
+                        </div>
+                        <div class="mb-4 bg-yellow-50/50 p-3 rounded border border-yellow-100">
+                            <label class="block text-gray-700 text-sm font-bold mb-1">Retroalimentación General</label>
+                            <textarea name="retro_diagnostico" id="input-diag-retro" rows="4" class="w-full p-2 border rounded bg-white"></textarea>
+                        </div>
+                        <div class="flex gap-3 pt-4 border-t border-purple-200">
+                            <button type="submit" id="btn-submit-diag" class="bg-purple-700 text-white font-bold py-3 px-6 rounded flex-1 hover:bg-purple-800 shadow uppercase transition transform hover:scale-[1.01]">Guardar</button>
+                            <button type="button" onclick="resetFormDiagnostico()" class="bg-gray-400 text-white font-bold py-3 px-6 rounded hidden" id="btn-cancelar-diag">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 
+
+<div id="modal-editar-paciente" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 backdrop-blur-sm">
+    <div class="bg-white p-8 rounded-lg shadow-2xl w-[600px] border-blue-custom max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6 border-b pb-2">
+            <h3 class="text-2xl font-bold text-blue-900">Editar Datos del Paciente</h3>
+            <button onclick="cerrarModal('modal-editar-paciente')" class="text-gray-500 hover:text-red-600 font-bold text-2xl">&times;</button>
+        </div>
+        
+        <form id="form-editar-paciente" onsubmit="guardarEdicionPaciente(event)">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="col-span-2">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Nombre Completo</label>
+                    {{ form_paciente.nombre }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Edad</label>
+                    {{ form_paciente.edad }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Sexo</label>
+                    {{ form_paciente.sexo }}
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Ocupación</label>
+                    {{ form_paciente.ocupacion }}
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Descripción</label>
+                    {{ form_paciente.descripcion }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Tipo de Caso</label>
+                    {{ form_paciente.tipo_caso }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Curso Asignado</label>
+                    {{ form_paciente.id_curso }}
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-4 border-t border-gray-200">
+                <button type="submit" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 rounded shadow transition">GUARDAR CAMBIOS</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-eliminar-registros" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl w-[500px] overflow-hidden transform transition-all">
+        <div class="bg-orange-500 p-4 flex justify-between items-center">
+            <h3 class="text-white font-bold text-lg flex items-center gap-2">⚠️ Gestión de Registros</h3>
+            <button onclick="cerrarModal('modal-eliminar-registros')" class="text-white hover:text-gray-200 text-2xl font-bold">&times;</button>
+        </div>
+        <div class="p-6 space-y-6">
+            <p class="text-sm text-gray-600 mb-4">Selecciona qué registros deseas eliminar para este paciente.</p>
+            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h4 class="font-bold text-gray-800 mb-2 text-sm uppercase">Opción 1: Un solo estudiante</h4>
+                <label class="text-xs text-gray-500 mb-1 block">Ingresa el correo:</label>
+                <div class="flex gap-2">
+                    <input type="text" id="input-estudiante-borrar" placeholder="correo@alumnos.ucn.cl" class="flex-1 p-2 border rounded text-sm focus:ring-2 focus:ring-orange-400 outline-none">
+                    <button onclick="borrarRegistros('unico')" class="bg-gray-800 hover:bg-black text-white px-3 py-2 rounded text-xs font-bold transition">BORRAR</button>
+                </div>
+            </div>
+            <div class="relative flex py-2 items-center">
+                <div class="flex-grow border-t border-gray-300"></div>
+                <span class="flex-shrink-0 mx-4 text-gray-400 text-xs font-bold">O ELIMINAR TODO</span>
+                <div class="flex-grow border-t border-gray-300"></div>
+            </div>
+            <div class="bg-red-50 p-4 rounded-lg border border-red-100 text-center">
+                <h4 class="font-bold text-red-800 mb-2 text-sm uppercase">Opción 2: Todos los registros</h4>
+                <p class="text-xs text-red-600 mb-3">Se eliminarán todas las respuestas de todos los alumnos en este caso.</p>
+                <button onclick="borrarRegistros('todos')" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded shadow transition flex justify-center items-center gap-2">🗑️ ELIMINAR TODO</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modal-confirmacion" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 fade-in backdrop-blur-sm">
+    <div class="bg-white p-8 rounded-lg shadow-2xl w-96 text-center transform scale-100 transition-transform border border-gray-200">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+            <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">¿Estás seguro?</h3>
+        <p class="text-sm text-gray-500 mb-6">Esta acción es irreversible.</p>
+        <div class="flex gap-3 justify-center">
+            <button onclick="cerrarModalEliminar()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-4 py-2 rounded shadow transition text-xs">CANCELAR</button>
+            <button onclick="confirmarEliminacion()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded shadow transition text-xs">SÍ, ELIMINAR</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-seguridad-borrado" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[60] backdrop-blur-sm transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl w-[450px] p-6 text-center border-t-8 border-red-600 transform scale-100">
+        <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-red-100 mb-6 animate-pulse">
+            <svg class="h-10 w-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <h3 class="text-2xl font-extrabold text-gray-900 mb-2">¿Estás absolutamente seguro?</h3>
+        <div class="bg-red-50 p-3 rounded-lg border border-red-100 mb-6">
+            <p class="text-sm text-red-800 font-medium">Vas a eliminar <span class="underline font-bold">TODOS</span> los registros y avances.</p>
+            <p class="text-xs text-red-600 mt-1 uppercase font-bold tracking-wide">🚫 Acción Irreversible</p>
+        </div>
+        <div class="flex gap-3 justify-center">
+            <button onclick="document.getElementById('modal-seguridad-borrado').classList.add('hidden')" class="flex-1 bg-white hover:bg-gray-100 text-gray-700 font-bold py-3 px-4 rounded-lg border border-gray-300 shadow-sm transition">CANCELAR</button>
+            <button onclick="ejecutarBorradoMasivo()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition">💣 SÍ, BORRAR TODO</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let itemAEliminar = { tipo: '', id: 0 };
+
+    function mostrarTab(num) {
+        document.querySelectorAll('.bloque-etapa').forEach(el => el.classList.remove('bloque-activo'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('tab-active'));
+        document.getElementById(`etapa-${num}`).classList.add('bloque-activo');
+        document.getElementById(`btn-tab-${num}`).classList.add('tab-active');
+    }
+
+    function abrirModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function abrirModalRegistros() { abrirModal('modal-eliminar-registros'); }
+
+    function guardarEdicionPaciente(e) {
+        e.preventDefault();
+        const formData = new FormData(document.getElementById('form-editar-paciente'));
+        // Reutilizamos la API de guardado/creación, que en tu vista maneja la edición si pasas instance,
+        // pero aquí es un endpoint nuevo o existente. 
+        // Usaremos la API guardar_edicion_ajax que creaste en gestión.
+        fetch(`/cursos/api/guardar/paciente/{{ paciente.id }}/`, {
+            method: 'POST',
+            body: formData
+        }).then(r => r.json()).then(d => {
+            if(d.ok) { location.reload(); } 
+            else { alert("Error: " + d.error); }
+        });
+    }
+
+    function borrarRegistros(tipo) {
+        if (tipo === 'todos') {
+            cerrarModal('modal-eliminar-registros');
+            document.getElementById('modal-seguridad-borrado').classList.remove('hidden');
+            return; 
+        }
+        if (tipo === 'unico') {
+            const correo = document.getElementById('input-estudiante-borrar').value;
+            if (!correo) { alert("Ingresa el correo."); return; }
+            if(!confirm(`¿Borrar registros de "${correo}"?`)) return;
+            realizarPeticionBorrado({ paciente_id: {{ paciente.id }}, tipo: 'unico', estudiante: correo });
+        }
+    }
+
+    function ejecutarBorradoMasivo() {
+        document.getElementById('modal-seguridad-borrado').classList.add('hidden');
+        realizarPeticionBorrado({ paciente_id: {{ paciente.id }}, tipo: 'todos' });
+    }
+
+    function realizarPeticionBorrado(payload) {
+        fetch("{% url 'cursos:eliminar_registros_api' %}", {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify(payload)
+        }).then(r => r.json()).then(d => {
+            if(d.ok) { alert("Registros eliminados."); location.reload(); }
+            else { alert("Error: " + d.error); }
+        }).catch(e => alert("Error de conexión"));
+    }
+
+    function solicitarEliminar(tipo, id) {
+        itemAEliminar = { tipo: tipo, id: id };
+        document.getElementById('modal-confirmacion').classList.remove('hidden');
+    }
+    function cerrarModalEliminar() {
+        document.getElementById('modal-confirmacion').classList.add('hidden');
+        itemAEliminar = { tipo: '', id: 0 };
+    }
+    function confirmarEliminacion() {
+        if (itemAEliminar.id === 0) return;
+        let url = '';
+        if (itemAEliminar.tipo === 'paciente') url = `/cursos/api/eliminar/paciente/${itemAEliminar.id}/`;
+        else if (itemAEliminar.tipo === 'pregunta') url = `/cursos/api/eliminar-pregunta/${itemAEliminar.id}/`;
+        else if (itemAEliminar.tipo === 'exploracion') url = `/cursos/api/eliminar-exploracion/${itemAEliminar.id}/`;
+        else if (itemAEliminar.tipo === 'diagnostico') url = `/cursos/api/eliminar-diagnostico/${itemAEliminar.id}/`;
+
+        fetch(url, {
+            method: 'POST', headers: {'X-CSRFToken': '{{ csrf_token }}'}
+        }).then(r => r.json()).then(data => {
+            if(data.ok) {
+                if (itemAEliminar.tipo === 'paciente') window.location.href = "{% url 'cursos:gestion_casos' %}";
+                else location.reload();
+            } else { alert("Error: " + data.error); cerrarModalEliminar(); }
+        }).catch(err => { alert("Error de conexión"); cerrarModalEliminar(); });
+    }
+
+    function guardarPregunta(e) { e.preventDefault(); fetch("{% url 'cursos:guardar_pregunta_etapa' %}", { method: 'POST', body: new FormData(e.target) }).then(r => r.json()).then(d => { if(d.ok) location.reload(); else alert(d.error); }); }
+    function guardarExploracion(e) { e.preventDefault(); fetch("{% url 'cursos:guardar_exploracion_etapa' %}", { method: 'POST', body: new FormData(e.target) }).then(r => r.json()).then(d => { if(d.ok) location.reload(); else alert(d.error); }); }
+    function guardarDiagnostico(e) { e.preventDefault(); fetch("{% url 'cursos:guardar_diagnostico_etapa' %}", { method: 'POST', body: new FormData(e.target) }).then(r => r.json()).then(d => { if(d.ok) { alert('Guardado.'); location.reload(); } else alert(d.error); }); }
+
+    function editarPregunta(id) {
+        fetch(`/cursos/api/obtener-pregunta/${id}/`).then(r => r.json()).then(data => {
+            document.getElementById('edit-pregunta-id').value = data.id;
+            document.getElementById('input-titulo').value = data.titulo;
+            document.getElementById('input-video').value = data.urlvideo;
+            data.opciones.forEach((op, idx) => {
+                let i = idx + 1;
+                document.getElementById(`resp-${i}`).value = op.texto;
+                document.getElementById(`retro-${i}`).value = op.retro;
+                if(op.es_correcta) document.querySelector(`input[name="correcta_index"][value="${i}"]`).checked = true;
+            });
+            document.getElementById('titulo-form-pregunta').innerText = "Editar Pregunta";
+            document.getElementById('btn-cancelar-edit').style.display = "block";
+            document.getElementById('form-pregunta').scrollIntoView({behavior: 'smooth'});
+        });
+    }
+    function editarExploracion(id) {
+        fetch(`/cursos/api/obtener-exploracion/${id}/`).then(r => r.json()).then(data => {
+            document.getElementById('edit-exploracion-id').value = data.id;
+            document.getElementById('input-exp-nombre').value = data.titulo;
+            document.getElementById('input-exp-indicacion').value = data.instruccion;
+            document.getElementById('input-exp-retro').value = data.retroalimentacion_general;
+            document.getElementById('input-exp-video').value = data.urlvideo;
+            document.getElementById('titulo-form-exploracion').innerText = "Editar Exploración";
+            document.getElementById('btn-cancelar-exp').style.display = "block";
+            document.getElementById('form-exploracion').scrollIntoView({behavior: 'smooth'});
+        });
+    }
+    function editarDiagnostico(id) {
+        document.getElementById('form-diagnostico').classList.remove('opacity-50', 'pointer-events-none');
+        if(document.getElementById('aviso-limite')) document.getElementById('aviso-limite').style.display = 'none';
+        fetch(`/cursos/api/obtener-diagnostico/${id}/`).then(r => r.json()).then(data => {
+            document.getElementById('edit-diag-id').value = data.id;
+            document.getElementById('input-diag-titulo').value = data.titulo;
+            document.getElementById('input-diag-retro').value = data.retroalimentacion_general;
+            document.getElementById('input-diag-video').value = data.urlvideo;
+            document.getElementById('titulo-form-diag').innerText = "Editar Diagnóstico";
+            document.getElementById('btn-cancelar-diag').classList.remove('hidden');
+        });
+    }
+
+    function resetFormPregunta() { location.reload(); }
+    function resetFormExploracion() { location.reload(); }
+    function resetFormDiagnostico() { location.reload(); }
+
+    function toggleVisibilidad(id) {
+        fetch(`/cursos/api/toggle-visibilidad/${id}/`, { method: 'POST', headers: {'X-CSRFToken': '{{ csrf_token }}'} }).then(r => r.json()).then(d => { if(d.ok) location.reload(); else alert("Error: " + d.error); });
+    }
+</script>
+{% endblock %}
