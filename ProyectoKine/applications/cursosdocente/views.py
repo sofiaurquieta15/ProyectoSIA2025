@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
 from django.db.models import Count
 from .forms import CursoForm, PacienteForm, TipoCasoForm
+from django.utils import timezone
 # Modelos
 from applications.login.models import Docente, Estudiante
 from .models import Curso

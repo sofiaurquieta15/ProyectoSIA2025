@@ -380,13 +380,52 @@ function enviarFormulario(formId, url) {
 
 // === AJAX TIPO CASO (Tu código existente) ===
 function guardarTipoCaso() {
-    const formData = new FormData(document.getElementById('form-tipo-caso'));
-    fetch("{% url 'cursos:crear_tipo_caso_ajax' %}", { method: 'POST', body: formData })
-    .then(r => r.json()).then(data => {
+    const form = document.getElementById('form-tipo-caso');
+    const formData = new FormData(form);
+
+    fetch("{% url 'cursos:crear_tipo_caso_ajax' %}", { 
+        method: 'POST', 
+        body: formData 
+    })
+    .then(r => r.json())
+    .then(data => {
         if(data.ok) {
-            alert("Tipo creado"); cerrarModal('modal-tipo-caso');
-            // Aquí podrías recargar para actualizar la lista de tipos si quisieras
-        } else { alert("Error"); }
+            // 1. Notificación simple
+            alert("Nuevo tipo de caso creado.");
+
+            // 2. Buscar el Select en el formulario de Paciente
+            // Django genera automáticamente el id con el prefijo "id_" + nombre_campo
+            let select = document.getElementById('id_tipo_caso');
+            
+            // Fallback: Si no lo encuentra por ID, buscar por nombre
+            if (!select) {
+                select = document.querySelector('select[name="tipo_caso"]');
+            }
+
+            if (select) {
+                // 3. Crear la nueva opción con los datos recibidos
+                // new Option(texto, valor)
+                const nuevaOpcion = new Option(data.nombre, data.id);
+                
+                // 4. Agregarla al final de la lista
+                select.add(nuevaOpcion);
+                
+                // 5. Dejarla seleccionada automáticamente
+                select.value = data.id;
+            } else {
+                console.warn("No se pudo actualizar la lista visualmente (recarga la página si es necesario).");
+            }
+
+            // 6. Limpiar y cerrar el modal de tipo
+            form.reset();
+            cerrarModal('modal-tipo-caso');
+        } else { 
+            alert("Error al crear: " + (data.error || "Datos inválidos")); 
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("Error de conexión con el servidor.");
     });
 }
 </script>
