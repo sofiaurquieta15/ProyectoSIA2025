@@ -43,6 +43,10 @@
 
     <h2 class="text-4xl font-extrabold text-center mb-2 uppercase">ETAPA {{ num_etapa }}</h2>
     <p class="text-center text-xl mb-10 text-blue-900 font-semibold">{{ etapa.nombreetapa }}</p>
+    <p class="text-xl text-gray-500 text-center mb-4">
+        Selecciona una zona de exploración y responde la pregunta según el video :
+    </p>
+
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -95,6 +99,7 @@
                         class="bg-blue-900 hover:bg-blue-800 text-white font-bold px-6 py-3 rounded-full mt-6 block mx-auto shadow-lg transition uppercase">
                     GUARDAR RESPUESTAS
                 </button>
+
             {% endif %}
 
         </div>
@@ -106,6 +111,9 @@
             {% if not completada %} disabled {% endif %}>
         {% if ultima_etapa %} FINALIZAR CASO {% else %} SIGUIENTE ETAPA {% endif %}
     </button>
+    <p class="text-l text-gray-500 text-center mt-4">
+        *Recuerda que debes responder todas las preguntas para pasar a la siguiente etapa.
+    </p>
 
 </div>
 

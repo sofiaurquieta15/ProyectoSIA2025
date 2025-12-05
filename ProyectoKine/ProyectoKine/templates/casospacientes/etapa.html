@@ -51,9 +51,12 @@
 </style>
 
 <div class="container mx-auto py-10 px-4 max-w-5xl">
-
+  
     <h2 class="text-4xl font-extrabold text-center text-gray-900 uppercase">ETAPA {{ num_etapa }}</h2>
     <p class="text-center text-xl mb-10 font-semibold text-blue-900">{{ etapa.nombreetapa }}</p>
+    <p class="text-xl text-gray-500 text-center">
+        Responde atentamente las preguntas según el video correspondiente:
+    </p>
 
     <div class="space-y-8">
         {% for pregunta in preguntas %}
@@ -128,6 +131,9 @@
                 class="btn-blue-custom text-white font-bold py-3 px-8 rounded-full mt-10 block mx-auto shadow-lg transition w-full md:w-auto uppercase">
             VALIDAR RESPUESTAS
         </button>
+        <p class="text-l text-gray-500 text-center mt-4">
+            *Recuerda que debes responder todas las preguntas correctamente para pasar a la siguiente etapa.
+        </p>
     {% endif %}
 
 </div>

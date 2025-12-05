@@ -50,7 +50,9 @@
 
     <h2 class="text-4xl font-extrabold text-center text-gray-900 uppercase">ETAPA {{ num_etapa }}</h2>
     <p class="text-center text-xl mb-10 font-semibold text-blue-900">{{ etapa.nombreetapa }}</p>
-
+    <p class="text-xl text-gray-500 text-center mb-4">
+        Realice el diagnóstico correspondiente al video:
+    </p>
     <div class="flex flex-col md:flex-row gap-8">
 
         <div class="w-full md:w-1/2 bg-black h-[300px] md:h-[400px] flex items-center justify-center rounded-lg shadow-lg border-blue-custom overflow-hidden">
@@ -101,7 +103,10 @@
                         class="btn-blue-custom font-bold px-8 py-3 rounded-full block mx-auto shadow-lg transition w-full uppercase">
                     ENVIAR DIAGNÓSTICO
                 </button>
-
+                <p class="text-l text-gray-500 text-center mt-4">
+                    *Recuerda que en caso de dudas sobre cualquier respuesta de las etapas puedes realizar tus consultas en 
+                    "Solicitud de Revisión".
+                </p>                
             {% endif %}
         </div>
     </div>
