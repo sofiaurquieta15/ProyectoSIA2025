@@ -8,9 +8,15 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
 """
 
 import os
+import sys
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ProyectoKine.settings")
+# *** LÍNEA CORREGIDA PARA RUTA ABSOLUTA EN DOCKER ***
+# Agrega la carpeta raíz del proyecto (/app) al Python Path
+sys.path.append('/app')
+# ****************************************************
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ProyectoKine.settings.deploy")
 
 application = get_wsgi_application()

@@ -1,0 +1,29 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: db_proyectokine
+      POSTGRES_USER: user_proyectokine
+      POSTGRES_PASSWORD: 123456
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    volumes:
+      - .:/app
+      - static_volume:/vol/staticfiles
+      - media_volume:/vol/media
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+volumes:
+  db_data:
+  static_volume:
+  media_volume:
