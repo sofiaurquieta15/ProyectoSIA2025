@@ -124,12 +124,14 @@ JAZZMIN_SETTINGS={
         # === APP cursosestudiante ===
         "cursosestudiante.avance": "fas fa-tasks",
         "cursosestudiante.enrolamiento": "fas fa-user-plus",
+        "cursosestudiante.solicitudrevision": "fas fa-file-signature",
+
 
         # === Django interno ===
         "auth.user": "fas fa-user-cog",
         "auth.group": "fas fa-users-cog",
     },
-
+    
     "order_with_respect_to": [
 
         # Bloque 1: Login
