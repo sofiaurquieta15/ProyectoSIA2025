@@ -2,6 +2,8 @@ from django.db import models
 from applications.login.models import Estudiante  # Import de Estudiante model
 from applications.login.models import Docente
 from applications.cursosdocente.models import Curso
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class TipoCaso(models.Model):
     nombre = models.CharField("Tipo de Caso", max_length=100, unique=True)
@@ -11,7 +13,7 @@ class TipoCaso(models.Model):
 
 class Paciente(models.Model):
     nombre = models.CharField("Nombre del Paciente", max_length=255)
-    edad = models.IntegerField("Edad")
+    edad = models.PositiveSmallIntegerField("Edad (Años)", help_text="usar 0 para lactantes (< 1 año)", validators=[MaxValueValidator(110)])
     sexo = models.CharField(
         "Sexo",
         max_length=20,
@@ -39,7 +41,7 @@ class Etapa(models.Model):
     ]
 
     nombreetapa = models.CharField("Nombre Etapa", max_length=100)
-    numetapa = models.IntegerField("Número de Etapa")
+    numetapa = models.IntegerField("Número de Etapa", validators=[MinValueValidator(1), MaxValueValidator(3)], help_text="Ingrese un número del 1 al 3.")
     id_paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
 
     tipo_pregunta = models.CharField(
@@ -164,6 +166,20 @@ class Exploracion(models.Model):
 
     def __str__(self):
         return f"{self.id_etapa} - Parte {self.orden}: {self.titulo}"
+    
+    def clean(self):
+        if not self.pk and self.id_etapa_id:
+            cantidad_actual = Exploracion.objects.filter(id_etapa=self.id_etapa).count()
+            if cantidad_actual >= 6:
+                raise ValidationError("Límite alcanzado: No se pueden agregar más de 6 exploraciones por etapa.")
+            super().clean()
+            
+    def embed_url(self):
+
+        url = self.urlvideo
+        if "watch?v=" in url:
+            return url.replace("watch?v=","embed/")
+        return url
 
     def save(self, *args, **kwargs):
         # MISMA lógica de conversión a embed
