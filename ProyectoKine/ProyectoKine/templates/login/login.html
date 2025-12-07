@@ -55,6 +55,17 @@
             ACCEDER
         </button>
     </form>
+
+    {% if request.path == '/estudiante/' or rol == 'Estudiante' %}
+    <div class="mt-6 text-center">
+        <p class="text-gray-600">¿No tienes cuenta?</p>
+        <a href="{% url 'login:registro_estudiante' %}" class="text-blue-900 font-bold hover:underline text-lg">
+            Regístrate aquí
+        </a>
+    </div>
+    {% endif %}
+    </div>
+    
 </div>
 
 <script>

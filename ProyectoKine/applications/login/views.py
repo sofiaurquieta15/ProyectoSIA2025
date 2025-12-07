@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect
 from django.views.generic import TemplateView
 from django.contrib.auth import authenticate, login
-from django.views.generic.edit import FormView
+from django.views.generic.edit import FormView, CreateView
 from .models import Estudiante, Docente
-from .forms import LoginForm
+from .forms import LoginForm, RegistroEstudianteForm
 from django.urls import reverse_lazy, reverse
 from django.contrib.auth import logout
 from django.views.decorators.http import require_POST
@@ -189,3 +189,24 @@ def editar_perfil_estudiante(request):
         pass
 
     return redirect('cursosestudiante:menu_estudiante')
+
+class RegistroEstudianteView(CreateView):
+    template_name = 'login/registro.html'
+    form_class = RegistroEstudianteForm
+    success_url = reverse_lazy('login:login_estudiante')
+
+    def form_valid(self, form):
+        estudiante = form.save(commit=False)
+        
+        # Requisito: Guardar con Mayúscula al inicio
+        estudiante.nombre = form.cleaned_data['nombre'].title()
+        estudiante.apellido = form.cleaned_data['apellido'].title()
+        
+        # Asignar la contraseña (según tu modelo actual es texto plano en 'passw_estudiante')
+        estudiante.passw_estudiante = form.cleaned_data['password']
+        
+        estudiante.save()
+        
+        # Mensaje de éxito
+        messages.success(self.request, "Cuenta creada exitosamente. Por favor inicia sesión.")
+        return super().form_valid(form)
