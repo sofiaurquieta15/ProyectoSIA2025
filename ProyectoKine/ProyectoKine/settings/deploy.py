@@ -5,6 +5,7 @@ from .base import * # Importa todas las configuraciones base
 # --- 1. Seguridad ---
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
+CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', 'http://localhost').split(',')
 
 # --- 2. Configuración de Base de Datos (Postgres en Docker) ---
 if os.environ.get('POSTGRES_HOST') is not None:
