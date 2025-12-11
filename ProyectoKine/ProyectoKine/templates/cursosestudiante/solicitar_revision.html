@@ -12,13 +12,7 @@
        class="bg-white hover:bg-gray-100 text-black font-bold py-1 px-3 rounded-full shadow transition">
         MIS CURSOS
     </a>
-    <a href="{% url 'cursosestudiante:estado_solicitudes' %}"
-       id="btn-top-estado"
-       class="hidden text-white font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm transition"
-       style="background-color: #2e7d32;">
-       ESTADO SOLICITUDES
-    </a>
-
+    
     <a href="{% url 'login:logout' %}"
        class="bg-red-600 text-white font-bold py-2 px-4 rounded-full shadow btn-nav-hover text-sm">
        CERRAR SESIÓN
@@ -55,9 +49,7 @@
 
 <div class="container mx-auto py-10 px-4 max-w-4xl text-center">
 
-    <!-- ICONO + TITULO -->
     <div class="mx-auto mb-6">
-        <!-- Icono: sobre + lupa (inline SVG) -->
         <svg class="mx-auto mb-4" width="68" height="68" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M3 7.5L12 13L21 7.5" stroke="#1e3a8a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             <rect x="2" y="4" width="20" height="12" rx="2" stroke="#1e3a8a" stroke-width="1.2"/>
@@ -69,14 +61,12 @@
             SOLICITAR REVISIÓN
         </h2>
 
-        <!-- DESCRIPCIÓN AMPLIADA (A) -->
         <p class="text-center text-gray-600 mb-6 max-w-2xl mx-auto">
             En este espacio podrás comunicarte directamente con tu docente respecto al avance de tus casos clínicos. 
             Envía consultas, revisa retroalimentaciones y lleva un seguimiento claro de tu proceso formativo.
         </p>
     </div>
 
-    <!-- RECUADRO INFORMATIVO (B) -->
     <div class="bg-blue-50 border-l-4 border-blue-900 rounded-lg p-4 mb-8 max-w-3xl mx-auto text-left">
         <p class="font-semibold text-blue-900 mb-2">Información importante</p>
         <ul class="text-sm text-gray-700 list-disc list-inside space-y-1">
@@ -86,10 +76,8 @@
         </ul>
     </div>
 
-    <!-- BOTONES DENTRO DE TARJETAS (D) -->
     <div id="btn-container" class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 justify-items-center">
 
-        <!-- Card: Añadir consulta -->
         <div class="w-full max-w-md bg-white rounded-xl shadow-lg border-2 border-gray-100 p-6 text-center">
             <h3 class="text-xl font-bold text-gray-900 mb-2 uppercase">Añadir una consulta</h3>
             <p class="text-gray-600 text-sm mb-4">
@@ -105,7 +93,6 @@
             <p class="text-xs text-gray-400 mt-4">Tip: redacta la consulta con puntos concretos para obtener mejor retroalimentación.</p>
         </div>
 
-        <!-- Card: Estado solicitudes -->
         <div class="w-full max-w-md bg-white rounded-xl shadow-lg border-2 border-gray-100 p-6 text-center">
             <h3 class="text-xl font-bold text-gray-900 mb-2 uppercase">Estado de solicitudes</h3>
             <p class="text-gray-600 text-sm mb-4">
@@ -113,7 +100,6 @@
             </p>
             <div class="flex justify-center">
                 <a href="{% url 'cursosestudiante:estado_solicitudes' %}"
-                   id="btn-bottom-estado"
                    class="text-white font-bold py-3 px-8 rounded-full shadow-lg transition text-lg uppercase"
                    style="background-color: #2e7d32;">
                    ESTADO SOLICITUDES
@@ -123,6 +109,8 @@
         </div>
 
     </div>
+
+    <div id="contenedor-consultas" class="w-full mt-8 space-y-8"></div>
 
 </div>
 
@@ -157,7 +145,7 @@
 
     window.abrirModalSeleccion = function() {
         if (!dataDB || dataDB.length === 0) {
-            mostrarFeedback("Sin datos", "No tienes cursos con etapas completadas para solicitar revisión.", false);
+            mostrarFeedback("Sin datos", "No tienes cursos con etapas completadas o datos cargados para solicitar revisión.", false);
             return;
         }
         document.getElementById('modal-seleccion').classList.remove('hidden');
@@ -178,29 +166,19 @@
         else { selectElement.classList.remove('select-active'); }
     };
 
-    // === LÓGICA DE MOVIMIENTO DE BOTONES ===
+    // === LÓGICA DE MOVIMIENTO DE BOTONES (MODIFICADA) ===
     function moverBotonEstado() {
-        const btnBottom = document.getElementById('btn-bottom-estado');
-        const btnTop = document.getElementById('btn-top-estado');
+        // Solo cambiamos el texto del botón Añadir, ya NO movemos el verde.
         const btnAdd = document.getElementById('btn-add-main');
-
-        if (btnBottom) btnBottom.classList.add('hidden');
-        if (btnTop) btnTop.classList.remove('hidden');
         if (btnAdd) btnAdd.innerText = "AÑADIR OTRA CONSULTA";
     }
 
-    // === NUEVA FUNCIÓN: RESTAURAR BOTONES SI NO HAY TARJETAS ===
+    // === RESTAURAR BOTONES SI NO HAY TARJETAS (MODIFICADA) ===
     function verificarYRestaurarBotones() {
         const container = document.getElementById('contenedor-consultas');
-        // Si el contenedor no tiene hijos (tarjetas vacías), restauramos
-        if (container.children.length === 0) {
-            const btnBottom = document.getElementById('btn-bottom-estado');
-            const btnTop = document.getElementById('btn-top-estado');
+        if (container && container.children.length === 0) {
             const btnAdd = document.getElementById('btn-add-main');
-
-            if (btnBottom) btnBottom.classList.remove('hidden'); // Mostrar abajo
-            if (btnTop) btnTop.classList.add('hidden');          // Ocultar arriba
-            if (btnAdd) btnAdd.innerText = "AÑADIR UNA CONSULTA"; // Resetear texto
+            if (btnAdd) btnAdd.innerText = "AÑADIR UNA CONSULTA"; 
         }
     }
 
@@ -214,11 +192,11 @@
         }
 
         cerrarModal();
-        
-        // ACTIVAR MODO "FORMULARIOS ABIERTOS"
-        moverBotonEstado();
+        moverBotonEstado(); // Cambia texto a "AÑADIR OTRA"
 
         const container = document.getElementById('contenedor-consultas');
+        if (!container) return;
+
         const cardId = "card-" + Date.now();
         let displayExploracion = (tipoEtapa === 2) ? "flex" : "none";
         let tituloEtapa = (tipoEtapa === 2) ? "Solicitud de Etapa 2: Exploración" : "Solicitud de Etapa 3: Diagnóstico";
@@ -264,13 +242,9 @@
         llenarCursos(cardId, tipoEtapa);
     };
 
-    // Función para remover tarjeta y VERIFICAR SI DEBE RESTAURAR BOTONES
     window.removerTarjeta = function(cardId) {
         const card = document.getElementById(cardId);
-        if (card) {
-            card.remove();
-        }
-        // Verificar si quedaron tarjetas, si no, restaurar
+        if (card) { card.remove(); }
         verificarYRestaurarBotones();
     };
 
@@ -355,7 +329,6 @@
         .then(r => r.json()).then(data => {
             if(data.ok) {
                 mostrarFeedback("Solicitud Enviada", "Consulta enviada correctamente.", true);
-                // Removemos tarjeta y VERIFICAMOS SI DEBE RESTAURAR
                 removerTarjeta(cardId);
             } else { mostrarFeedback("Error", data.error, false); }
         }).catch(e => mostrarFeedback("Error", "Error de conexión", false));
