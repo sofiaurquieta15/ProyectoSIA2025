@@ -299,6 +299,32 @@
     </div>
 </div>
 
+<div id="modal-detalle-intentos" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 px-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg border-blue-custom relative overflow-hidden flex flex-col max-h-[90vh]">
+        
+        <div class="bg-blue-custom p-4 flex justify-between items-center">
+            <h3 class="text-xl font-bold text-white">Detalle de Errores - Etapa 1</h3>
+            <button onclick="document.getElementById('modal-detalle-intentos').classList.add('hidden')" class="text-white hover:text-gray-300 font-bold text-2xl">&times;</button>
+        </div>
+
+        <div class="p-6 overflow-y-auto bg-gray-50">
+            <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Pregunta</th>
+                            <th class="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Cant. Errores</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-detalle-body" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
 <script>
 let cursoIdActual = "{{ curso_activo.id }}";
 
@@ -415,13 +441,26 @@ function abrirModalDetalle(scriptId) {
                         : "bg-gray-100 text-gray-500 border-gray-200";
                     let icon = e.completada ? "✔" : "○";
                     
+                    // --- LÓGICA DEL BOTÓN DETALLE (SOLO ETAPA 1) ---
+                    let botonDetalle = "";
+                    if (e.num === 1) { 
+                        botonDetalle = `
+                        <button 
+                            onclick="verDetalleEstudiante('${p.estudiante_id}', '${e.id}')" 
+                            class="bg-blue-custom hover:bg-blue-900 text-white text-xs font-bold py-1 px-3 rounded-full ml-2 shadow transition uppercase">
+                            Detalle
+                        </button>`;
+                    }
+                    
                     html += `
                         <div class="flex justify-between items-center p-2 rounded border ${badgeClass}">
                             <div class="flex flex-col">
                                 <span class="font-bold text-xs">ETAPA ${e.num}</span>
                                 <span class="text-xs">${e.nombre}</span>
                             </div>
-                            <span class="font-bold text-lg block">${icon}</span>
+                            <div class="flex items-center">
+                                ${botonDetalle} <span class="font-bold text-lg block ml-3">${icon}</span>
+                            </div>
                         </div>
                     `;
                 });
@@ -438,6 +477,44 @@ function abrirModalDetalle(scriptId) {
     }
 
     document.getElementById('modal-detalle').classList.remove('hidden');
+}
+
+function verDetalleEstudiante(estudianteId, etapaId) {
+        const modal = document.getElementById('modal-detalle-intentos');
+        const tbody = document.getElementById('tabla-detalle-body');
+        
+        // Limpiamos la tabla antes de cargar
+        tbody.innerHTML = '<tr><td colspan="2" class="text-center py-4 text-gray-500">Cargando datos...</td></tr>';
+        modal.classList.remove('hidden');
+
+        let url = "{% url 'cursos:detalle_intentos' 0 0 %}".replace('0/0', estudianteId + '/' + etapaId);
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                tbody.innerHTML = ''; 
+
+                if (data.ok && data.detalles.length > 0) {
+                    data.detalles.forEach(item => {
+                        // Determinamos color si hay muchos errores
+                        let colorError = item.errores > 0 ? "text-red-600" : "text-gray-400";
+                        
+                        let row = `
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 text-sm text-gray-900 font-medium">${item.pregunta}</td>
+                                <td class="px-6 py-4 text-sm text-center ${colorError} font-bold">${item.errores}</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="2" class="text-center py-4 text-gray-500">No hay errores registrados o preguntas contestadas.</td></tr>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                tbody.innerHTML = '<tr><td colspan="2" class="text-center py-4 text-red-500">Error al cargar los datos.</td></tr>';
+            });
 }
 </script>
 

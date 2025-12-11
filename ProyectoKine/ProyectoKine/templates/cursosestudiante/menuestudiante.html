@@ -26,80 +26,88 @@
 
 <div class="flex-grow container mx-auto py-10 px-4 sm:px-6 lg:px-8 relative">
 
-    <button onclick="abrirModal('modal-perfil-estudiante')" 
-            class="hidden lg:block absolute top-0 right-10 bg-blue-900 hover:bg-blue-800 text-white font-semibold text-lg px-6 py-2 rounded-b-lg shadow-md border-t-0 border-x-2 border-b-2 border-blue-800 transition cursor-pointer z-10"
-            title="Clic para editar perfil">
-        Hola, {{ user.nombre }} {{ user.apellido }}
-    </button>
+    <div class="flex flex-col xl:flex-row gap-8 items-start justify-center max-w-7xl mx-auto">
 
-    <div class="text-center mb-12 mt-8">
-        <h2 class="text-5xl font-extrabold text-gray-900 mb-2">
-            ¡Bienvenido a KineLearn!
-        </h2>
-        <p class="text-xl text-gray-600">
-            Explora tus cursos, revisa tu progreso y trabaja con casos clínicos.
-        </p>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center max-w-7xl mx-auto">
-
-        <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
-            <div>
-                <div class="text-6xl mb-4">📚</div> 
-                <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">MIS CURSOS</h3>
-                <p class="text-gray-600 text-sm">Accede a todas tus asignaturas, contenidos y casos clínicos asociados al curso.</p>
+        <div class="flex-1 w-full">
+            
+            <div class="text-center mb-10 mt-2">
+                <h2 class="text-5xl font-extrabold text-gray-900 mb-2">
+                    ¡Bienvenido a KineLearn!
+                </h2>
+                <p class="text-xl text-gray-600">
+                    Explora tus cursos, revisa tu progreso y trabaja con casos clínicos.
+                </p>
             </div>
-            <a href="{% url 'cursosestudiante:lista_cursos' %}" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">ACCEDER</a>
-        </div>
 
-        <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
-            <div>
-                <div class="text-6xl mb-4">📈</div> 
-                <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">REVISAR AVANCES</h3>
-                <p class="text-gray-600 text-sm">Visualiza tu progreso, etapas completadas y desempeño en cada caso clínico.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                <div class="bg-white shadow-2xl rounded-xl p-8 text-center hover:scale-[1.02] transition duration-300 border-blue-custom flex flex-col justify-between items-center h-96">
+                    <div>
+                        <div class="text-6xl mb-4">📚</div> 
+                        <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">MIS CURSOS</h3>
+                        <p class="text-gray-600 text-sm">Accede a todas tus asignaturas, contenidos y casos clínicos asociados al curso.</p>
+                    </div>
+                    <a href="{% url 'cursosestudiante:lista_cursos' %}" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-10 rounded-full mt-6 shadow-lg uppercase transition w-full">ACCEDER</a>
+                </div>
+
+                <div class="bg-white shadow-2xl rounded-xl p-8 text-center hover:scale-[1.02] transition duration-300 border-blue-custom flex flex-col justify-between items-center h-96">
+                    <div>
+                        <div class="text-6xl mb-4">📈</div> 
+                        <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">REVISAR AVANCES</h3>
+                        <p class="text-gray-600 text-sm">Visualiza tu progreso, etapas completadas y desempeño en cada caso clínico.</p>
+                    </div>
+                    <a href="{% url 'cursosestudiante:ver_avances' %}" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-10 rounded-full mt-6 shadow-lg uppercase transition w-full">ACCEDER</a>
+                </div>
+
+                <div class="bg-white shadow-2xl rounded-xl p-8 text-center hover:scale-[1.02] transition duration-300 border-blue-custom flex flex-col justify-between items-center h-96">
+                    <div class="w-full">
+                        <div class="text-6xl mb-4">📩</div> 
+                        <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">SOLICITAR REVISIÓN</h3>
+                        <p class="text-gray-600 text-sm">Envía una solicitud al docente para recibir retroalimentación o evaluación.</p>
+                    </div>
+                    <a href="{% url 'cursosestudiante:solicitar_revision' %}" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-10 rounded-full mt-6 shadow-lg uppercase transition w-full">ACCEDER</a>
+                </div>
+
             </div>
-            <a href="{% url 'cursosestudiante:ver_avances' %}" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">ACCEDER</a>
         </div>
 
-        <div class="w-full max-w-sm p-8 bg-white shadow-2xl rounded-xl text-center hover:scale-[1.03] transition duration-300 border-blue-custom flex flex-col justify-between h-80">
-            <div>
-                <div class="text-6xl mb-4">📩</div> 
-                <h3 class="text-2xl font-extrabold text-gray-900 mb-2 uppercase">SOLICITAR REVISIÓN</h3>
-                <p class="text-gray-600 text-sm">Envía una solicitud al docente para recibir retroalimentación o evaluación.</p>
+        <div class="w-full xl:w-80 flex flex-col gap-4 shrink-0 mt-8 xl:mt-0">
+            
+            <button onclick="abrirModal('modal-perfil-estudiante')" 
+                    class="bg-blue-900 hover:bg-blue-800 text-white font-semibold text-lg px-4 py-3 rounded-lg shadow-md border border-blue-800 transition cursor-pointer w-full flex justify-center items-center gap-2"
+                    title="Clic para editar perfil">
+                <span>Hola, {{ user.nombre }} {{ user.apellido }}</span>
+            </button>
+
+            <div class="bg-white shadow-2xl rounded-xl border-blue-custom p-6 h-fit w-full">
+                <h3 class="text-xl font-extrabold text-blue-900 mb-4 flex items-center gap-2 border-b pb-2">
+                    📌 Información Rápida
+                </h3>
+
+                <div class="space-y-4 text-sm">
+                    <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p class="font-bold flex items-center gap-2 text-yellow-800">
+                            ⚠️ Recordatorio:
+                        </p>
+                        <p class="text-gray-700 mt-1">Revisa tus avances pendientes del curso.</p>
+                    </div>
+
+                    <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p class="font-bold flex items-center gap-2 text-blue-800">
+                            📅 Próxima fecha:
+                        </p>
+                        <p class="text-gray-700 mt-1">Nuevas evaluaciones estarán disponibles pronto.</p>
+                    </div>
+
+                    <div class="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <p class="font-bold flex items-center gap-2 text-orange-800">
+                            💡 Consejo del día:
+                        </p>
+                        <p class="text-gray-700 mt-1">Revisa el caso clínico al menos 2 veces.</p>
+                    </div>
+                </div>
             </div>
-            <a href="{% url 'cursosestudiante:solicitar_revision' %}" class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 w-full rounded-full mt-6 block text-center shadow-lg uppercase transition">ACCEDER</a>
-        </div>
 
-    </div>
-
-</div>
-        <!-- TARJETA LATERAL DE INFORMACIÓN RÁPIDA -->
-            <div class="w-full max-w-sm p-6 bg-white shadow-2xl rounded-xl h-fit border-blue-custom">
-            <h3 class="text-xl font-extrabold text-blue-900 mb-4 flex items-center gap-2">
-            📌 Información Rápida
-            </h3>
-
-            <div class="space-y-4 text-sm">
-
-            <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p class="font-bold flex items-center gap-2">
-            ⚠️ Recordatorio:
-            </p>
-            <p class="text-gray-700">Revisa tus avances pendientes del curso.</p>
-        </div>
-
-        <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p class="font-bold flex items-center gap-2">
-                📅 Próxima fecha:
-            </p>
-            <p class="text-gray-700">Nuevas evaluaciones estarán disponibles pronto.</p>
-        </div>
-
-        <div class="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-            <p class="font-bold flex items-center gap-2">
-                💡 Consejo del día:
-            </p>
-            <p class="text-gray-700">Revisa el caso clínico al menos 2 veces.</p>
         </div>
 
     </div>

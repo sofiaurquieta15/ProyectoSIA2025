@@ -304,10 +304,10 @@ def validar_respuesta_ajax(request):
         data = json.loads(request.body)
         estudiante_id = data.get("estudiante_id")
         
-        # Datos Etapa 1 (Lista de opciones)
+        # Datos Etapa 1
         respuestas_cliente = data.get("respuestas", [])
         
-        # Datos Etapa 3 (Texto directo)
+        # Datos Etapa 3
         texto_respuesta_global = data.get("texto_respuesta", "").strip()
         pregunta_id_global = data.get("pregunta_id")
 
@@ -325,7 +325,6 @@ def validar_respuesta_ajax(request):
 
     # ============================================================
     # CASO A: ETAPA 3 (RESPUESTA ESCRITA)
-    # Detectamos si viene texto_respuesta y pregunta_id
     # ============================================================
     if texto_respuesta_global and pregunta_id_global:
         try:
@@ -334,17 +333,16 @@ def validar_respuesta_ajax(request):
         except Pregunta.DoesNotExist:
             return JsonResponse({"error": "Pregunta no encontrada"}, status=404)
 
-        # Guardar respuesta (update_or_create para evitar duplicados si reenvía)
+        # Guardar respuesta (SIN calificacion_obtenida)
         registro, creado = Registro.objects.update_or_create(
             id_pregunta=pregunta,
             id_estudiante=estudiante,
             defaults={
-                "respuesta_texto_libre": texto_respuesta_global,
-                "calificacion_obtenida": None  # Pendiente de revisión docente si aplica
+                "respuesta_texto_libre": texto_respuesta_global
             }
         )
 
-        # Marcar etapa completada automáticamente al enviar
+        # Marcar etapa completada
         EtapaCompletada.objects.get_or_create(
             estudiante=estudiante,
             etapa=etapa
@@ -358,82 +356,80 @@ def validar_respuesta_ajax(request):
 
     # ============================================================
     # CASO B: ETAPA 1 (SELECCIÓN MÚLTIPLE)
-    # Procesamos la lista de respuestas
     # ============================================================
     
     errores = []
-    correctas_objs = []
+    aciertos_info = []
     etapa_actual = None
+    hay_respuestas_validas = False
 
-    for item in respuestas_cliente:
-        p_id = item.get("pregunta_id")
-        op_id = item.get("opcion_id")
-        
-        # Si falta la opción, saltamos (esto evita que el código de Etapa 1 trate de procesar datos de Etapa 3)
-        if not op_id: 
-            continue
-
-        try:
-            pregunta = Pregunta.objects.get(id=p_id)
-            opcion = OpcionMultiple.objects.get(id=op_id)
+    with transaction.atomic():
+        for item in respuestas_cliente:
+            p_id = item.get("pregunta_id")
+            op_id = item.get("opcion_id")
             
-            if not opcion.is_correct:
-                errores.append({
-                    "pregunta_id": p_id,
-                    "titulo_pregunta": pregunta.titulo,
-                    "opcion_texto": opcion.texto_opcion,
-                    "opcion_id": op_id,
-                    "retro": opcion.retroalimentacion or "Incorrecto. Intenta de nuevo."
-                })
-            else:
-                correctas_objs.append(Registro(
+            if not op_id: 
+                continue
+
+            try:
+                pregunta = Pregunta.objects.get(id=p_id)
+                opcion = OpcionMultiple.objects.get(id=op_id)
+                hay_respuestas_validas = True
+                
+                # Obtenemos o creamos registro para contar intentos (aunque no mostremos puntos)
+                registro, created = Registro.objects.get_or_create(
                     id_pregunta=pregunta,
                     id_estudiante=estudiante,
-                    opcion_seleccionada=opcion,
-                    calificacion_obtenida=1
-                ))
-                etapa_actual = pregunta.id_etapa
+                    defaults={'intentos_fallidos': 0}
+                )
 
-        except (Pregunta.DoesNotExist, OpcionMultiple.DoesNotExist):
-            continue
+                if not opcion.is_correct:
+                    # Si se equivoca: Aumentamos intentos
+                    registro.intentos_fallidos += 1
+                    registro.save()
 
-    # Respuesta Final Etapa 1
-    if len(errores) > 0:
-        return JsonResponse({
-            "ok": False,
-            "errores": errores,
-            "msg": "Hay respuestas incorrectas."
-        })
-    else:
-        # Si no hubo errores, pero tampoco respuestas válidas de selección múltiple
-        if not correctas_objs:
-             return JsonResponse({"error": "No se recibieron datos válidos para procesar."}, status=400)
+                    errores.append({
+                        "pregunta_id": p_id,
+                        "titulo_pregunta": pregunta.titulo,
+                        "opcion_texto": opcion.texto_opcion,
+                        "opcion_id": op_id,
+                        "retro": opcion.retroalimentacion or "Incorrecto. Intenta de nuevo."
+                    })
+                else:
+                    # Si acierta: Guardamos la opción seleccionada
+                    registro.opcion_seleccionada = opcion
+                    registro.save() # Guardamos sin calcular puntos ni calificación
 
-        # Recopilar retroalimentación positiva
-        aciertos_info = []
-        for reg in correctas_objs:
-            aciertos_info.append({
-                "pregunta_id": reg.id_pregunta.id,
-                "retro": reg.opcion_seleccionada.retroalimentacion or "¡Correcto!"
+                    aciertos_info.append({
+                        "pregunta_id": registro.id_pregunta.id,
+                        "retro": opcion.retroalimentacion or "¡Correcto!",
+                        # Ya no enviamos "puntos"
+                    })
+                    
+                    etapa_actual = pregunta.id_etapa
+
+            except (Pregunta.DoesNotExist, OpcionMultiple.DoesNotExist):
+                continue
+        
+        # Respuesta Final
+        if len(errores) > 0:
+            return JsonResponse({
+                "ok": False,
+                "errores": errores,
+                "msg": "Hay respuestas incorrectas."
             })
+        else:
+            if not hay_respuestas_validas:
+                 return JsonResponse({"error": "No se recibieron datos válidos para procesar."}, status=400)
 
-        # Guardar en Transacción
-        with transaction.atomic():
-            # Borrar intentos previos de estas mismas preguntas
-            preguntas_ids = [r.id_pregunta.id for r in correctas_objs]
-            Registro.objects.filter(id_estudiante=estudiante, id_pregunta__id__in=preguntas_ids).delete()
-            
-            # Crear nuevos registros
-            Registro.objects.bulk_create(correctas_objs)
-            
             if etapa_actual:
                 EtapaCompletada.objects.get_or_create(estudiante=estudiante, etapa=etapa_actual)
 
-        return JsonResponse({
-            "ok": True,
-            "aciertos": aciertos_info,
-            "msg": "Etapa completada."
-        })
+            return JsonResponse({
+                "ok": True,
+                "aciertos": aciertos_info,
+                "msg": "Etapa completada."
+            })
 
 @csrf_exempt
 def guardar_exploracion(request):

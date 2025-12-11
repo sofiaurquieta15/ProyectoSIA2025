@@ -251,12 +251,10 @@ class Registro(models.Model):
 
     fecha_envio = models.DateTimeField("Fecha de Envío", auto_now_add=True)
 
-    calificacion_obtenida = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        help_text="Puntuación asignada a esta respuesta."
+    intentos_fallidos = models.PositiveSmallIntegerField(
+        "Intentos Fallidos", 
+        default=0,
+        help_text="Contador de errores antes de acertar (para cálculo de puntaje)."
     )
 
     opcion_seleccionada = models.ForeignKey(

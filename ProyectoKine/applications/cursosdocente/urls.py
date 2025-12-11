@@ -12,6 +12,8 @@ urlpatterns = [
     path('enrolar-estudiante/', views.enrolar_estudiante, name='enrolar_estudiante'),
     path('desenrolar-estudiante/', views.desenrolar_estudiante, name='desenrolar_estudiante'),
     path('revisiones/', views.RevisionesDocenteView, name='revisiones_docente'),
+
+    path('detalle-intentos/<int:estudiante_id>/<int:etapa_id>/', views.obtener_detalle_intentos, name='detalle_intentos'),
     
     # Vista Principal de Gestión de Casos (La de las 3 tarjetas grandes)
     path('gestion-casos/', views.GestionCasosView, name='gestion_casos'),

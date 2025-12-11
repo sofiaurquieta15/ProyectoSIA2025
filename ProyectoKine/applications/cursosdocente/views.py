@@ -4,16 +4,21 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
 from django.db.models import Count
-from .forms import CursoForm, PacienteForm, TipoCasoForm
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from applications.casospacientes.models import Etapa, Exploracion
+from django.db import transaction
+
+# Formularios
+from .forms import CursoForm, PacienteForm, TipoCasoForm
+
 # Modelos
 from applications.login.models import Docente, Estudiante
 from .models import Curso
-# IMPORTANTE: Agregamos SolicitudRevision a los imports
 from applications.cursosestudiante.models import Enrolamiento, SolicitudRevision
-from applications.casospacientes.models import Paciente, TipoCaso, Etapa, EtapaCompletada, Registro, Pregunta, Exploracion, OpcionMultiple
+from applications.casospacientes.models import (
+    Paciente, TipoCaso, Etapa, EtapaCompletada, Registro, 
+    Pregunta, Exploracion, OpcionMultiple
+)
 
 def MenuDocenteView(request):
     usuario_id = request.session.get('usuario_id')
@@ -21,7 +26,6 @@ def MenuDocenteView(request):
     try: usuario = Docente.objects.get(id=usuario_id)
     except Docente.DoesNotExist: return redirect('login:login_docente')
     return render(request, 'cursosdocente/menudocente.html', {'user': usuario})
-
 
 def GestionCursosDocenteView(request):
     # 1. Validar Docente
@@ -79,6 +83,7 @@ def GestionCursosDocenteView(request):
                     hecha = EtapaCompletada.objects.filter(estudiante=est, etapa=etapa).exists()
                     
                     etapas_info_p.append({
+                        'id': etapa.id,            # ID necesario para el botón de detalle
                         'num': etapa.numetapa,
                         'nombre': etapa.nombreetapa,
                         'completada': hecha
@@ -89,7 +94,8 @@ def GestionCursosDocenteView(request):
                 
                 pacientes_info.append({
                     'nombre': paciente.nombre,
-                    'etapas': etapas_info_p
+                    'etapas': etapas_info_p,
+                    'estudiante_id': est.id        # ID necesario para el botón de detalle
                 })
             
             porcentaje = 0
@@ -103,7 +109,7 @@ def GestionCursosDocenteView(request):
             estudiantes_data.append({
                 'obj': est,
                 'porcentaje': porcentaje,
-                'pacientes': pacientes_info, # Lista Python pura (se convierte con filtro en template)
+                'pacientes': pacientes_info, 
                 'json_id': f"data-est-{est.id}"
             })
 
@@ -117,7 +123,7 @@ def GestionCursosDocenteView(request):
             etapas_stats = []
             
             for etapa in etapas:
-                # 1. Porcentaje de aprobación de la etapa (cuántos alumnos la hicieron)
+                # 1. Porcentaje de aprobación de la etapa
                 completions = EtapaCompletada.objects.filter(
                     etapa=etapa, 
                     estudiante__in=[e.estudiante for e in enrolamientos]
@@ -127,7 +133,7 @@ def GestionCursosDocenteView(request):
                 if total_estudiantes > 0:
                     perc_stage = int((completions / total_estudiantes) * 100)
                 
-                # 2. Solicitudes de revisión enviadas para esta etapa
+                # 2. Solicitudes de revisión
                 req_count = SolicitudRevision.objects.filter(
                     curso=curso_activo,
                     paciente=paciente,
@@ -152,8 +158,8 @@ def GestionCursosDocenteView(request):
         'cursos': cursos,
         'curso_activo': curso_activo,
         'estudiantes_data': estudiantes_data,
-        'curso_stats': curso_stats, # Nueva Data
-        'pacientes_global_stats': pacientes_global_stats # Nueva Data
+        'curso_stats': curso_stats,
+        'pacientes_global_stats': pacientes_global_stats
     })
 
 @csrf_exempt
@@ -208,7 +214,6 @@ def desenrolar_estudiante(request):
                 ).delete()
                 
                 # 3. Borrar Registros (Respuestas Preguntas) de este curso
-                # Usamos la relación: Registro -> Pregunta -> Etapa -> Paciente -> Curso
                 Registro.objects.filter(
                     id_estudiante=estudiante,
                     id_pregunta__id_etapa__id_paciente__id_curso=curso
@@ -312,7 +317,6 @@ def RevisionesDocenteView(request):
             pass
 
     # Listas para los filtros (Dropdowns)
-    # Usamos set() para valores únicos
     cursos_filter = set(s.curso for s in SolicitudRevision.objects.filter(curso__id_docente=docente))
     pacientes_filter = set(s.paciente for s in SolicitudRevision.objects.filter(curso__id_docente=docente))
     estudiantes_filter = set(s.estudiante for s in SolicitudRevision.objects.filter(curso__id_docente=docente))
@@ -323,7 +327,6 @@ def RevisionesDocenteView(request):
         'pacientes_filter': pacientes_filter,
         'estudiantes_filter': estudiantes_filter,
         'user': docente,
-        # Preservar filtros
         'f_curso': int(curso_id) if curso_id else '',
         'f_paciente': int(paciente_id) if paciente_id else '',
         'f_etapa': int(etapa) if etapa else '',
@@ -332,19 +335,16 @@ def RevisionesDocenteView(request):
     })
 
 def GestionCasosView(request):
-    # Validar sesión docente
     usuario_id = request.session.get('usuario_id')
-    if not usuario_id or request.session.get('rol') != 'Docente':
+    if not usuario_id: return redirect('login:login_docente')
+    try:
+        docente = Docente.objects.get(id=usuario_id)
+    except Docente.DoesNotExist:
         return redirect('login:login_docente')
-    
-    docente = Docente.objects.get(id=usuario_id)
 
-    # Listados para la pestaña "GESTIÓN/EDITAR"
     mis_cursos = Curso.objects.filter(id_docente=docente)
-    # Pacientes asociados a los cursos de este docente
     mis_pacientes = Paciente.objects.filter(id_curso__id_docente=docente)
 
-    # Formularios vacíos para los modales de creación
     form_curso = CursoForm()
     form_paciente = PacienteForm(user=docente)
     form_tipo_caso = TipoCasoForm()
@@ -362,19 +362,22 @@ def GestionCasosView(request):
 def crear_curso_ajax(request):
     if request.method == 'POST':
         usuario_id = request.session.get('usuario_id')
-        docente = Docente.objects.get(id=usuario_id)
-        form = CursoForm(request.POST)
-        if form.is_valid():
-            curso = form.save(commit=False)
-            curso.id_docente = docente
-            curso.fechacreacion = timezone.now()
-            curso.save()
-            return JsonResponse({'ok': True, 'msg': 'Curso creado exitosamente.'})
-        else:
-            return JsonResponse({'ok': False, 'error': form.errors.as_json()})
+        try:
+            docente = Docente.objects.get(id=usuario_id)
+            form = CursoForm(request.POST)
+            if form.is_valid():
+                curso = form.save(commit=False)
+                curso.id_docente = docente
+                curso.fechacreacion = timezone.now()
+                curso.save()
+                return JsonResponse({'ok': True, 'msg': 'Curso creado exitosamente.'})
+            else:
+                return JsonResponse({'ok': False, 'error': form.errors.as_json()})
+        except:
+            return JsonResponse({'ok': False, 'error': 'Docente no encontrado'})
     return JsonResponse({'ok': False, 'error': 'Método no permitido'})
 
-# --- AJAX: Crear Tipo Caso (Popup) ---
+# --- AJAX: Crear Tipo Caso ---
 def crear_tipo_caso_ajax(request):
     if request.method == 'POST':
         form = TipoCasoForm(request.POST)
@@ -388,13 +391,16 @@ def crear_tipo_caso_ajax(request):
 def crear_paciente_ajax(request):
     if request.method == 'POST':
         usuario_id = request.session.get('usuario_id')
-        docente = Docente.objects.get(id=usuario_id)
-        form = PacienteForm(docente, request.POST) # Pasamos el docente para filtrar cursos
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'ok': True, 'msg': 'Paciente creado exitosamente.'})
-        else:
-            return JsonResponse({'ok': False, 'error': str(form.errors)})
+        try:
+            docente = Docente.objects.get(id=usuario_id)
+            form = PacienteForm(docente, request.POST)
+            if form.is_valid():
+                form.save()
+                return JsonResponse({'ok': True, 'msg': 'Paciente creado exitosamente.'})
+            else:
+                return JsonResponse({'ok': False, 'error': str(form.errors)})
+        except Exception as e:
+            return JsonResponse({'ok': False, 'error': str(e)})
     return JsonResponse({'ok': False, 'error': 'Método no permitido'})
 
 # --- AJAX: Eliminar Objeto ---
@@ -428,25 +434,26 @@ def obtener_datos_edicion(request, modelo, pk):
 # --- AJAX: Guardar Edición ---
 def guardar_edicion_ajax(request, modelo, pk):
     if request.method == 'POST':
-        if modelo == 'curso':
-            obj = get_object_or_404(Curso, pk=pk)
-            form = CursoForm(request.POST, instance=obj)
-        elif modelo == 'paciente':
-            usuario_id = request.session.get('usuario_id')
+        usuario_id = request.session.get('usuario_id')
+        try:
             docente = Docente.objects.get(id=usuario_id)
-            obj = get_object_or_404(Paciente, pk=pk)
-            form = PacienteForm(docente, request.POST, instance=obj)
-        
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'ok': True})
-        return JsonResponse({'ok': False, 'error': str(form.errors)})
+            if modelo == 'curso':
+                obj = get_object_or_404(Curso, pk=pk)
+                form = CursoForm(request.POST, instance=obj)
+            elif modelo == 'paciente':
+                obj = get_object_or_404(Paciente, pk=pk)
+                form = PacienteForm(docente, request.POST, instance=obj)
+            
+            if form.is_valid():
+                form.save()
+                return JsonResponse({'ok': True})
+            return JsonResponse({'ok': False, 'error': str(form.errors)})
+        except Exception as e:
+             return JsonResponse({'ok': False, 'error': str(e)})
     return JsonResponse({'ok': False, 'error': 'Método no permitido'})
 
 def ConfigurarEtapasView(request, paciente_id):
     paciente = get_object_or_404(Paciente, pk=paciente_id)
-    
-    # Obtener el docente para inicializar el formulario correctamente (filtrar cursos)
     usuario_id = request.session.get('usuario_id')
     docente = Docente.objects.get(id=usuario_id)
 
@@ -464,18 +471,15 @@ def ConfigurarEtapasView(request, paciente_id):
         defaults={'nombreetapa': '3: Diagnóstico', 'tipo_pregunta': 'ESCRITA'}
     )
 
-    # Contenido existente
     preguntas_e1 = Pregunta.objects.filter(id_etapa=etapa1)
     exploraciones_e2 = Exploracion.objects.filter(id_etapa=etapa2)
     diagnostico_e3 = Pregunta.objects.filter(id_etapa=etapa3, tipo='ESCRITA').first()
 
-    # Validación de Progreso
     etapa1_completa = preguntas_e1.exists()
     etapa2_completa = exploraciones_e2.exists()
     etapa3_completa = bool(diagnostico_e3)
     caso_listo = etapa1_completa and etapa2_completa and etapa3_completa
 
-    # NUEVO: Formulario para editar paciente (Pre-llenado con instance=paciente)
     form_paciente = PacienteForm(user=docente, instance=paciente)
 
     context = {
@@ -489,137 +493,67 @@ def ConfigurarEtapasView(request, paciente_id):
         'etapa1_completa': etapa1_completa,
         'etapa2_completa': etapa2_completa,
         'caso_listo': caso_listo,
-        'form_paciente': form_paciente, # <--- Enviamos el form al template
+        'form_paciente': form_paciente,
     }
-    
     return render(request, 'cursosdocente/configurar_etapas.html', context)
 
-# --- APIs AJAX DE GUARDADO ---
-
+# --- API AJAX DE GUARDADO PREGUNTA (ETAPA 1) ---
 @csrf_exempt
 def guardar_pregunta_etapa(request):
     if request.method == 'POST':
         try:
+            pregunta_id = request.POST.get('pregunta_id')
             etapa_id = request.POST.get('etapa_id')
             texto_titulo = request.POST.get('texto_pregunta')
             video_url = request.POST.get('video_url')
             
-            docente_id = request.session.get('usuario_id')
-            docente = Docente.objects.get(id=docente_id)
-            etapa = Etapa.objects.get(id=etapa_id)
-            
-            # CORRECCIÓN: Eliminamos el campo 'texto' que ya no existe en tu modelo
-            pregunta = Pregunta.objects.create(
-                id_etapa=etapa, 
-                titulo=texto_titulo, 
-                # texto="Seleccione la alternativa correcta",  <-- ELIMINADO
-                tipo='MULTIPLE',
-                docente=docente,
-                urlvideo=video_url
-            )
-            
-            # Guardar 4 Respuestas
-            correcta_idx = int(request.POST.get('correcta_index'))
-            
-            for i in range(1, 5):
-                texto_resp = request.POST.get(f'respuesta_{i}')
-                texto_retro = request.POST.get(f'retro_{i}', '') # Valor por defecto vacío
-                es_correcta = (i == correcta_idx)
-                
-                OpcionMultiple.objects.create(
-                    pregunta=pregunta, 
-                    texto_opcion=texto_resp, 
-                    is_correct=es_correcta,
-                    retroalimentacion=texto_retro
-                )
-                
-            return JsonResponse({'ok': True})
-        except Exception as e:
-            return JsonResponse({'ok': False, 'error': str(e)})
-
-    return JsonResponse({'ok': False, 'error': 'Método no permitido'})
-
-@csrf_exempt
-def guardar_exploracion_etapa(request):
-    if request.method == 'POST':
-        try:
-            etapa_id = request.POST.get('etapa_id')
-            exploracion_id = request.POST.get('exploracion_id')
-            nombre = request.POST.get('nombre_exploracion')
-            indicacion = request.POST.get('indicacion_exploracion')
-            retro = request.POST.get('retro_exploracion')
-            video_url = request.POST.get('video_url') # Nuevo campo
-            
-            etapa = Etapa.objects.get(id=etapa_id)
-            
-            if exploracion_id:
-                exploracion = get_object_or_404(Exploracion, id=exploracion_id)
-
-                exploracion.titulo = nombre
-                exploracion.instruccion = indicacion
-                exploracion.retroalimentacion_general = retro
-                exploracion.urlvideo = video_url
+            if pregunta_id:
+                pregunta = Pregunta.objects.get(pk=pregunta_id)
+                pregunta.titulo = texto_titulo
+                pregunta.urlvideo = video_url
+                pregunta.save()
+                pregunta.opciones.all().delete() # Reemplazar opciones
             else:
-                cantidad_actual = Exploracion.objects.filter(id_etapa=etapa).count()
-                if cantidad_actual >= 6:
-                    return JsonResponse({
-                        'ok':False,
-                        'error': 'Limite alcanzado: Máximo de 6 exploraciones permitidas por etapa'
-                    }, status=400)
-
-                orden_actual = cantidad_actual + 1
-
-                exploracion = Exploracion(
-                    id_etapa=etapa,
-                    titulo=nombre,
-                    instruccion=indicacion,
-                    retroalimentacion_general=retro,
-                    orden=orden_actual,
+                etapa = Etapa.objects.get(id=etapa_id)
+                docente = Docente.objects.get(id=request.session.get('usuario_id'))
+                pregunta = Pregunta.objects.create(
+                    id_etapa=etapa, 
+                    titulo=texto_titulo, 
+                    tipo='MULTIPLE',
+                    docente=docente,
                     urlvideo=video_url
                 )
             
-            exploracion.save()
-
-            return JsonResponse({'ok':True, 'id':exploracion.id})
-        
-        except ValidationError as e:
-            return JsonResponse({'ok': False, 'error':e.nessages[0]})
-           
-        except Exception as e:
-            return JsonResponse({'ok': False, 'error': str(e)})
-            
-    return JsonResponse({'ok': False})
-
-@csrf_exempt
-def guardar_diagnostico_etapa(request):
-    if request.method == 'POST':
-        try:
-            etapa_id = request.POST.get('etapa_id')
-            diagnostico_texto = request.POST.get('diagnostico')
-            video_url = request.POST.get('video_url') # Nuevo campo
-            
-            docente_id = request.session.get('usuario_id')
-            docente = Docente.objects.get(id=docente_id)
-            etapa = Etapa.objects.get(id=etapa_id)
-            
-            # Guardamos/Actualizamos la pregunta de diagnóstico
-            pregunta, created = Pregunta.objects.update_or_create(
-                id_etapa=etapa,
-                tipo='ESCRITA',
-                defaults={
-                    'titulo': 'Diagnóstico Final',
-                    'texto': 'Realice el diagnóstico correspondiente al caso',
-                    'docente': docente,
-                    'clave_respuesta_escrita': diagnostico_texto,
-                    'urlvideo': video_url # Asociamos el video aquí
-                }
-            )
-            
+            correcta_idx = int(request.POST.get('correcta_index'))
+            for i in range(1, 5):
+                texto_resp = request.POST.get(f'respuesta_{i}')
+                texto_retro = request.POST.get(f'retro_{i}', '')
+                OpcionMultiple.objects.create(
+                    pregunta=pregunta, 
+                    texto_opcion=texto_resp, 
+                    is_correct=(i == correcta_idx),
+                    retroalimentacion=texto_retro
+                )
             return JsonResponse({'ok': True})
         except Exception as e:
             return JsonResponse({'ok': False, 'error': str(e)})
-
     return JsonResponse({'ok': False})
+
+def obtener_pregunta_api(request, pk):
+    try:
+        p = Pregunta.objects.get(pk=pk)
+        opciones = p.opciones.all()
+        lista = []
+        for op in opciones:
+            lista.append({
+                'texto': op.texto_opcion,
+                'retro': op.retroalimentacion,
+                'es_correcta': op.is_correct
+            })
+        data = {'id': p.id, 'titulo': p.titulo, 'urlvideo': p.urlvideo, 'opciones': lista}
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 @csrf_exempt
 def eliminar_pregunta_api(request, pk):
@@ -631,107 +565,33 @@ def eliminar_pregunta_api(request, pk):
             return JsonResponse({'ok': False})
     return JsonResponse({'ok': False})
 
-def obtener_pregunta_api(request, pk):
-    try:
-        p = Pregunta.objects.get(pk=pk)
-        opciones = p.opciones.all() # Asegúrate que related_name='opciones' en tu modelo OpcionMultiple
-        
-        lista_opciones = []
-        for op in opciones:
-            lista_opciones.append({
-                'texto': op.texto_opcion,
-                'retro': op.retroalimentacion,
-                'es_correcta': op.is_correct
-            })
-            
-        data = {
-            'id': p.id,
-            'titulo': p.titulo,
-            'urlvideo': p.urlvideo,
-            'opciones': lista_opciones
-        }
-        return JsonResponse(data)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
-
-# Y ACTUALIZAR guardar_pregunta_etapa PARA SOPORTAR EDICIÓN (ID existente)
-@csrf_exempt
-def guardar_pregunta_etapa(request):
-    if request.method == 'POST':
-        try:
-            pregunta_id = request.POST.get('pregunta_id') # ID si es edición
-            etapa_id = request.POST.get('etapa_id')
-            texto_titulo = request.POST.get('texto_pregunta')
-            video_url = request.POST.get('video_url')
-            
-            if pregunta_id:
-                # EDICIÓN
-                pregunta = Pregunta.objects.get(pk=pregunta_id)
-                pregunta.titulo = texto_titulo
-                pregunta.urlvideo = video_url
-                pregunta.save()
-                
-                # Borramos opciones viejas y creamos nuevas (más fácil que editar una por una)
-                pregunta.opciones.all().delete()
-            else:
-                # CREACIÓN
-                etapa = Etapa.objects.get(id=etapa_id)
-                docente = Docente.objects.get(id=request.session.get('usuario_id'))
-                pregunta = Pregunta.objects.create(
-                    id_etapa=etapa, 
-                    titulo=texto_titulo, 
-                    tipo='MULTIPLE',
-                    docente=docente,
-                    urlvideo=video_url
-                )
-            
-            # Guardar Opciones (Igual para ambos casos)
-            correcta_idx = int(request.POST.get('correcta_index'))
-            for i in range(1, 5):
-                texto_resp = request.POST.get(f'respuesta_{i}')
-                texto_retro = request.POST.get(f'retro_{i}', '')
-                OpcionMultiple.objects.create(
-                    pregunta=pregunta, 
-                    texto_opcion=texto_resp, 
-                    is_correct=(i == correcta_idx),
-                    retroalimentacion=texto_retro
-                )
-                
-            return JsonResponse({'ok': True})
-        except Exception as e:
-            return JsonResponse({'ok': False, 'error': str(e)})
-    return JsonResponse({'ok': False})
-
-# 1. ACTUALIZAR: Guardar / Editar Exploración
+# --- API AJAX DE EXPLORACIÓN (ETAPA 2) ---
 @csrf_exempt
 def guardar_exploracion_etapa(request):
     if request.method == 'POST':
         try:
-            # Recibir datos
             exploracion_id = request.POST.get('exploracion_id')
             etapa_id = request.POST.get('etapa_id')
             nombre = request.POST.get('nombre_exploracion')
             instruccion = request.POST.get('indicacion_exploracion')
-            retro_gral = request.POST.get('retro_exploracion') # Campo nuevo
-            url_video = request.POST.get('video_url') # Obligatorio
+            retro_gral = request.POST.get('retro_exploracion')
+            url_video = request.POST.get('video_url')
 
-            # Validaciones básicas
             if not nombre or not instruccion or not url_video:
-                return JsonResponse({'ok': False, 'error': 'Faltan campos obligatorios (Nombre, Instrucción o Video).'})
+                return JsonResponse({'ok': False, 'error': 'Faltan campos obligatorios.'})
 
             if exploracion_id:
-                # --- EDICIÓN ---
                 exp = get_object_or_404(Exploracion, pk=exploracion_id)
                 exp.titulo = nombre
                 exp.instruccion = instruccion
                 exp.retroalimentacion_general = retro_gral
                 exp.urlvideo = url_video
-                exp.save() # El método save() del modelo se encarga de convertir a embed
+                exp.save()
             else:
-                # --- CREACIÓN ---
                 etapa = get_object_or_404(Etapa, pk=etapa_id)
-                # Calcular orden
-                orden_actual = Exploracion.objects.filter(id_etapa=etapa).count() + 1
+                cantidad = Exploracion.objects.filter(id_etapa=etapa).count()
+                if cantidad >= 6:
+                     return JsonResponse({'ok': False, 'error': 'Máximo 6 exploraciones.'})
                 
                 Exploracion.objects.create(
                     id_etapa=etapa,
@@ -739,22 +599,18 @@ def guardar_exploracion_etapa(request):
                     instruccion=instruccion,
                     retroalimentacion_general=retro_gral,
                     urlvideo=url_video,
-                    orden=orden_actual
+                    orden=cantidad + 1
                 )
-            
             return JsonResponse({'ok': True})
         except Exception as e:
             return JsonResponse({'ok': False, 'error': str(e)})
-            
-    return JsonResponse({'ok': False, 'error': 'Método no permitido'})
+    return JsonResponse({'ok': False})
 
-# 2. OBTENER (Para editar)
 def obtener_exploracion_api(request, pk):
     try:
         exp = get_object_or_404(Exploracion, pk=pk)
         data = {
-            'id': exp.id,
-            'titulo': exp.titulo,
+            'id': exp.id, 'titulo': exp.titulo,
             'instruccion': exp.instruccion,
             'retroalimentacion_general': exp.retroalimentacion_general,
             'urlvideo': exp.urlvideo
@@ -763,80 +619,63 @@ def obtener_exploracion_api(request, pk):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
-# 3. ELIMINAR
 @csrf_exempt
 def eliminar_exploracion_api(request, pk):
     if request.method == 'POST':
         try:
-            exp = get_object_or_404(Exploracion, pk=pk)
-            exp.delete()
-            # Opcional: Reordenar las exploraciones restantes aquí si fuera necesario
+            get_object_or_404(Exploracion, pk=pk).delete()
             return JsonResponse({'ok': True})
-        except Exception as e:
-            return JsonResponse({'ok': False, 'error': str(e)})
+        except:
+            return JsonResponse({'ok': False})
     return JsonResponse({'ok': False})
 
-# 1. GUARDAR DIAGNÓSTICO (Etapa 3)
+# --- API AJAX DE DIAGNÓSTICO (ETAPA 3) ---
 @csrf_exempt
 def guardar_diagnostico_etapa(request):
     if request.method == 'POST':
         try:
-            # 1. Obtener datos del formulario
             pregunta_id = request.POST.get('pregunta_id')
             etapa_id = request.POST.get('etapa_id')
             titulo = request.POST.get('titulo_diagnostico')
             retro = request.POST.get('retro_diagnostico')
             url_video = request.POST.get('video_url', '')
 
-            # 2. VALIDACIÓN BÁSICA
             if not titulo:
-                return JsonResponse({'ok': False, 'error': 'Falta el título de la pregunta de diagnóstico.'})
+                return JsonResponse({'ok': False, 'error': 'Falta el título.'})
 
-            # 3. RECUPERAR AL DOCENTE (CRUCIAL PARA EL ERROR)
             usuario_id = request.session.get('usuario_id')
             docente = Docente.objects.get(id=usuario_id)
 
             if pregunta_id:
-                # --- CASO EDITAR ---
                 preg = get_object_or_404(Pregunta, pk=pregunta_id)
                 preg.titulo = titulo
                 preg.retroalimentacion_general = retro
                 preg.urlvideo = url_video
-                # Nota: No cambiamos el docente al editar, mantenemos el creador original
                 preg.save()
             else:
-                # --- CASO CREAR ---
                 etapa = get_object_or_404(Etapa, pk=etapa_id)
-                
-                # Verificar duplicados
                 if Pregunta.objects.filter(id_etapa=etapa).exists():
-                     return JsonResponse({'ok': False, 'error': 'Ya existe un diagnóstico para este paciente.'})
+                     return JsonResponse({'ok': False, 'error': 'Ya existe diagnóstico.'})
 
                 Pregunta.objects.create(
                     id_etapa=etapa,
                     titulo=titulo,
                     tipo='ESCRITA',
-                    docente=docente,            # <--- AQUÍ ESTABA EL ERROR (Faltaba esta línea)
-                    clave_respuesta_escrita="", # Guardamos vacío para cumplir requisitos si los hay
+                    docente=docente,
+                    clave_respuesta_escrita="",
                     retroalimentacion_general=retro,
                     urlvideo=url_video
                 )
-            
             return JsonResponse({'ok': True})
         except Exception as e:
-            print(f"Error en guardar_diagnostico: {e}") # Log para depuración
             return JsonResponse({'ok': False, 'error': str(e)})
+    return JsonResponse({'ok': False})
 
-    return JsonResponse({'ok': False, 'error': 'Método no permitido'})
-
-# 2. OBTENER (Para editar)
 def obtener_diagnostico_api(request, pk):
     try:
         preg = get_object_or_404(Pregunta, pk=pk)
         data = {
-            'id': preg.id,
-            'titulo': preg.titulo,
-            'clave_respuesta_escrita': preg.clave_respuesta_escrita, # La respuesta correcta
+            'id': preg.id, 'titulo': preg.titulo,
             'retroalimentacion_general': preg.retroalimentacion_general,
             'urlvideo': preg.urlvideo
         }
@@ -844,16 +683,14 @@ def obtener_diagnostico_api(request, pk):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
-# 3. ELIMINAR
 @csrf_exempt
 def eliminar_diagnostico_api(request, pk):
     if request.method == 'POST':
         try:
-            preg = get_object_or_404(Pregunta, pk=pk)
-            preg.delete()
+            get_object_or_404(Pregunta, pk=pk).delete()
             return JsonResponse({'ok': True})
-        except Exception as e:
-            return JsonResponse({'ok': False, 'error': str(e)})
+        except:
+            return JsonResponse({'ok': False})
     return JsonResponse({'ok': False})
 
 @csrf_exempt
@@ -861,11 +698,7 @@ def toggle_visibilidad_paciente(request, pk):
     if request.method == 'POST':
         try:
             paciente = Paciente.objects.get(pk=pk)
-            
-            # Validar integridad antes de permitir mostrar
-            # (Doble chequeo de seguridad por si alguien fuerza la petición)
-            if not paciente.visible: # Si quiere mostrarlo
-                # Verificar que tenga las 3 etapas con contenido
+            if not paciente.visible:
                 e1 = Etapa.objects.filter(id_paciente=paciente, numetapa=1).first()
                 e2 = Etapa.objects.filter(id_paciente=paciente, numetapa=2).first()
                 e3 = Etapa.objects.filter(id_paciente=paciente, numetapa=3).first()
@@ -875,18 +708,13 @@ def toggle_visibilidad_paciente(request, pk):
                 has_diag3 = Pregunta.objects.filter(id_etapa=e3, tipo='ESCRITA').exists() if e3 else False
 
                 if not (has_q1 and has_ex2 and has_diag3):
-                    return JsonResponse({'ok': False, 'error': 'El caso está incompleto. No se puede publicar.'})
+                    return JsonResponse({'ok': False, 'error': 'Caso incompleto.'})
 
-            # Cambiar estado
             paciente.visible = not paciente.visible
             paciente.save()
-            
-            estado_txt = "VISIBLE" if paciente.visible else "OCULTO"
-            return JsonResponse({'ok': True, 'estado': paciente.visible, 'msg': f'Paciente ahora está {estado_txt}'})
-            
+            return JsonResponse({'ok': True, 'estado': paciente.visible})
         except Exception as e:
             return JsonResponse({'ok': False, 'error': str(e)})
-            
     return JsonResponse({'ok': False})
 
 @csrf_exempt
@@ -895,52 +723,48 @@ def eliminar_registros_api(request):
         try:
             data = json.loads(request.body)
             paciente_id = data.get('paciente_id')
-            tipo = data.get('tipo') # 'unico' o 'todos'
+            tipo = data.get('tipo')
             
             if tipo == 'unico':
                 correo = data.get('estudiante')
-                try:
-                    estudiante = Estudiante.objects.get(correo_institucional=correo)
-                    
-                    # 1. Borrar Registros (Respuestas de Etapas)
-                    Registro.objects.filter(
-                        id_estudiante=estudiante,
-                        id_pregunta__id_etapa__id_paciente_id=paciente_id
-                    ).delete()
-                    
-                    Registro.objects.filter(
-                        id_estudiante=estudiante,
-                        id_exploracion__id_etapa__id_paciente_id=paciente_id
-                    ).delete()
-                    
-                    # 2. Borrar Avance (Etapas Completadas)
-                    EtapaCompletada.objects.filter(
-                        estudiante=estudiante,
-                        etapa__id_paciente_id=paciente_id
-                    ).delete()
-
-                    # 3. --- NUEVO: Borrar Solicitudes de Revisión ---
-                    SolicitudRevision.objects.filter(
-                        estudiante=estudiante,
-                        paciente__id=paciente_id
-                    ).delete()
-                    
-                except Estudiante.DoesNotExist:
-                    return JsonResponse({'ok': False, 'error': 'Estudiante no encontrado'})
+                estudiante = Estudiante.objects.get(correo_institucional=correo)
+                
+                Registro.objects.filter(id_estudiante=estudiante, id_pregunta__id_etapa__id_paciente_id=paciente_id).delete()
+                Registro.objects.filter(id_estudiante=estudiante, id_exploracion__id_etapa__id_paciente_id=paciente_id).delete()
+                EtapaCompletada.objects.filter(estudiante=estudiante, etapa__id_paciente_id=paciente_id).delete()
+                SolicitudRevision.objects.filter(estudiante=estudiante, paciente__id=paciente_id).delete()
             
             elif tipo == 'todos':
-                # 1. Borrar TODOS los Registros
                 Registro.objects.filter(id_pregunta__id_etapa__id_paciente_id=paciente_id).delete()
                 Registro.objects.filter(id_exploracion__id_etapa__id_paciente_id=paciente_id).delete()
-                
-                # 2. Borrar TODOS los Avances
                 EtapaCompletada.objects.filter(etapa__id_paciente_id=paciente_id).delete()
-
-                # 3. --- NUEVO: Borrar TODAS las Solicitudes ---
                 SolicitudRevision.objects.filter(paciente__id=paciente_id).delete()
             
             return JsonResponse({'ok': True})
         except Exception as e:
             return JsonResponse({'ok': False, 'error': str(e)})
-            
     return JsonResponse({'ok': False})
+
+# =========================================================================
+# === NUEVA VISTA: DETALLE INTENTOS POR ESTUDIANTE (PARA EL BOTÓN) ===
+# =========================================================================
+def obtener_detalle_intentos(request, estudiante_id, etapa_id):
+    if request.method != "GET":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
+
+    registros = Registro.objects.filter(
+        id_estudiante=estudiante_id,
+        id_pregunta__id_etapa=etapa_id
+    ).select_related('id_pregunta')
+
+    detalles = []
+    
+    for reg in registros:
+        puntaje = max(0, 3 - reg.intentos_fallidos)
+        detalles.append({
+            "pregunta": reg.id_pregunta.titulo,
+            "errores": reg.intentos_fallidos,
+            "puntaje": puntaje
+        })
+
+    return JsonResponse({"ok": True, "detalles": detalles})
