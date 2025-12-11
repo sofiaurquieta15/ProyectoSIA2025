@@ -6,6 +6,7 @@ app_name = 'cursos'
 urlpatterns = [
     # Vistas anteriores
     path('menu-docente/', views.MenuDocenteView, name='menu_docente'),
+    path('api/notificacion-leida/', views.marcar_notificacion_docente, name='marcar_notificacion_docente'),
     
     # --- NUEVO MÓDULO DE GESTIÓN (Agrega todo esto) ---
     path('mis-cursos/', views.GestionCursosDocenteView, name='mis_cursos'), # Vista gestión cursos

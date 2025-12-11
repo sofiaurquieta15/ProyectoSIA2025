@@ -15,6 +15,7 @@ from .forms import CursoForm, PacienteForm, TipoCasoForm
 from applications.login.models import Docente, Estudiante
 from .models import Curso
 from applications.cursosestudiante.models import Enrolamiento, SolicitudRevision
+from applications.cursosdocente.models import NotificacionDocenteVista
 from applications.casospacientes.models import (
     Paciente, TipoCaso, Etapa, EtapaCompletada, Registro, 
     Pregunta, Exploracion, OpcionMultiple
@@ -23,9 +24,74 @@ from applications.casospacientes.models import (
 def MenuDocenteView(request):
     usuario_id = request.session.get('usuario_id')
     if not usuario_id: return redirect('login:login_docente')
-    try: usuario = Docente.objects.get(id=usuario_id)
+    
+    try:
+        docente = Docente.objects.get(id=usuario_id)
     except Docente.DoesNotExist: return redirect('login:login_docente')
-    return render(request, 'cursosdocente/menudocente.html', {'user': usuario})
+
+    # 1. Obtener IDs de solicitudes que este docente YA VIO
+    vistas_ids = set(NotificacionDocenteVista.objects.filter(docente=docente).values_list('solicitud_id', flat=True))
+
+    # 2. Buscar las últimas solicitudes recibidas (Historial completo)
+    # Filtramos por los cursos de este docente
+    requests_qs = SolicitudRevision.objects.filter(
+        curso__id_docente=docente
+    ).select_related('estudiante', 'paciente', 'curso').order_by('-fecha_solicitud')[:10] 
+    # Traemos 10 por si acaso, luego cortamos a 5
+
+    notificaciones = []
+    for req in requests_qs:
+        es_leido = req.id in vistas_ids
+        
+        notificaciones.append({
+            'id': req.id,
+            'estudiante_nombre': f"{req.estudiante.nombre} {req.estudiante.apellido}",
+            'categoria': req.get_etapa_solicitud_display(), # Exploración / Diagnóstico
+            'paciente_nombre': req.paciente.nombre,
+            'curso_nombre': req.curso.nombrecurso,
+            'fecha': req.fecha_solicitud,
+            'leido': es_leido,
+            'etapa_num': req.etapa_solicitud,
+            
+            # Datos para construir la URL
+            'url_params': f"curso={req.curso.id}&estudiante={req.estudiante.id}&paciente={req.paciente.id}&etapa={req.etapa_solicitud}"
+        })
+
+    # 3. Ordenar: Primero las NO leídas, luego por fecha
+    notificaciones.sort(key=lambda x: x['leido']) 
+    
+    # 4. Dejar solo las últimas 5 para el menú
+    notificaciones = notificaciones[:5]
+
+    # Contar no leídas reales
+    count_no_leidas = sum(1 for n in notificaciones if not n['leido'])
+
+    return render(request, 'cursosdocente/menudocente.html', {
+        'user': docente,
+        'notificaciones': notificaciones,
+        'count_no_leidas': count_no_leidas
+    })
+
+# --- API AJAX PARA MARCAR COMO LEÍDO ---
+@csrf_exempt
+def marcar_notificacion_docente(request):
+    if request.method == 'POST':
+        usuario_id = request.session.get('usuario_id')
+        if not usuario_id: return JsonResponse({'ok': False})
+        
+        try:
+            docente = Docente.objects.get(id=usuario_id)
+            data = json.loads(request.body)
+            sol_id = data.get('id')
+            
+            NotificacionDocenteVista.objects.get_or_create(
+                docente=docente,
+                solicitud_id=sol_id
+            )
+            return JsonResponse({'ok': True})
+        except Exception as e:
+            return JsonResponse({'ok': False, 'error': str(e)})
+    return JsonResponse({'ok': False})
 
 def GestionCursosDocenteView(request):
     # 1. Validar Docente
@@ -242,7 +308,7 @@ def desenrolar_estudiante(request):
 def RevisionesDocenteView(request):
     usuario_id = request.session.get('usuario_id')
     if not usuario_id: return redirect('login:login_docente')
-    
+
     try:
         docente = Docente.objects.get(id=usuario_id)
     except Docente.DoesNotExist:
@@ -312,8 +378,9 @@ def RevisionesDocenteView(request):
             sol_edit.estado = 'RESPONDIDA'
             sol_edit.fecha_respuesta = timezone.now()
             sol_edit.save()
-            return redirect('cursos:revisiones_docente') # Recargar para ver cambios
-        except:
+            return redirect('cursos:revisiones_docente') 
+        except Exception as e: # <--- CAMBIO AQUÍ
+            print(f"ERROR AL GUARDAR RESPUESTA: {e}") # Verás el error en la consola de Docker
             pass
 
     # Listas para los filtros (Dropdowns)

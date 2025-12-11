@@ -4,7 +4,8 @@ from . import views
 app_name = 'cursosestudiante'
 
 urlpatterns = [
-    path('menu-estudiante/', views.menu_estudiante, name='menu_estudiante'),
+    path('menu-estudiante/', views.MenuEstudianteView, name='menu_estudiante'),
+    path('api/notificacion-vista/', views.marcar_notificacion_vista, name='marcar_notificacion_vista'),
     path('mis-cursos/', views.ListaCursosEstudianteView.as_view(), name='lista_cursos'),
     path('avances/', views.RevisarAvancesView, name='ver_avances'),
     path('solicitar-revision/', views.SolicitudRevisionView, name='solicitar_revision'),

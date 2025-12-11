@@ -12,7 +12,7 @@ from applications.login.models import Estudiante
 from applications.casospacientes.models import Paciente, Etapa, EtapaCompletada, Exploracion
 
 # Importación de Modelos PROPIOS
-from applications.cursosestudiante.models import Avance, Enrolamiento, SolicitudRevision
+from applications.cursosestudiante.models import Avance, Enrolamiento, SolicitudRevision, NotificacionVista
 
 class ListaCursosEstudianteView(ListView):
     model = Curso
@@ -25,16 +25,117 @@ class ListaCursosEstudianteView(ListView):
             return Curso.objects.filter(enrolamientos__estudiante_id=estudiante_id)
         else:
             return Curso.objects.none()
+
+def MenuEstudianteView(request):
+    estudiante_id = request.session.get('estudiante_id')
+    if not estudiante_id: return redirect('login:login_estudiante')
     
-def menu_estudiante(request):
-    usuario_id = request.session.get('usuario_id')
-    if not usuario_id:
-        return redirect('login:login_estudiante')
     try:
-        usuario = Estudiante.objects.get(id=usuario_id)
-    except Estudiante.DoesNotExist:
-        return redirect('login:login_estudiante')
-    return render(request, 'cursosestudiante/menuestudiante.html', {'user': usuario})
+        estudiante = Estudiante.objects.get(id=estudiante_id)
+    except Estudiante.DoesNotExist: return redirect('login:login_estudiante')
+
+    # 1. Obtener lista de IDs que este estudiante YA VIO
+    vistas = NotificacionVista.objects.filter(estudiante=estudiante).values_list('tipo', 'referencia_id')
+    # Creamos un set para búsqueda rápida: {'SOLICITUD_5', 'PACIENTE_10', ...}
+    vistas_set = {f"{v[0]}_{v[1]}" for v in vistas}
+
+    notificaciones_lista = []
+
+    # --- A) SOLICITUDES (Traemos 10) ---
+    solicitudes = SolicitudRevision.objects.filter(
+        estudiante=estudiante, estado='RESPONDIDA'
+    ).select_related('curso', 'curso__id_docente', 'paciente').order_by('-fecha_respuesta')[:10]
+
+    for sol in solicitudes:
+        # Generar ID único lógico
+        uid_logico = f"SOLICITUD_{sol.id}"
+        es_leido = uid_logico in vistas_set
+        
+        # Link con filtros
+        link = f"/cursosestudiante/estado-solicitudes/?curso={sol.curso.id}&paciente={sol.paciente.id}&tipo={sol.etapa_solicitud}&estado=RESPONDIDA"
+        
+        docente = sol.curso.id_docente
+        notificaciones_lista.append({
+            'tipo_obj': 'SOLICITUD',     # Para la API
+            'id_obj': sol.id,            # Para la API
+            'leido': es_leido,
+            
+            # Datos visuales
+            'tipo_icono': 'RESPUESTA_SOLICITUD',
+            'categoria': sol.get_etapa_solicitud_display(),
+            'docente_nombre': f"{docente.nombre_docente} {docente.apellido_docente}",
+            'curso_nombre': sol.curso.nombrecurso,
+            'mensaje': f"Respuesta para el paciente {sol.paciente.nombre}",
+            'url': link,
+            'fecha': sol.fecha_respuesta,
+        })
+
+    # --- B) PACIENTES (Traemos 10) ---
+    mis_cursos_ids = Enrolamiento.objects.filter(estudiante=estudiante).values_list('curso_id', flat=True)
+    pacientes = Paciente.objects.filter(
+        id_curso__id__in=mis_cursos_ids, visible=True
+    ).select_related('id_curso', 'id_curso__id_docente').order_by('-id')[:10]
+
+    for pac in pacientes:
+        uid_logico = f"PACIENTE_{pac.id}"
+        es_leido = uid_logico in vistas_set
+
+        docente = pac.id_curso.id_docente
+        notificaciones_lista.append({
+            'tipo_obj': 'PACIENTE',
+            'id_obj': pac.id,
+            'leido': es_leido,
+
+            'tipo_icono': 'NUEVO_PACIENTE',
+            'categoria': 'Nuevo Caso',
+            'docente_nombre': f"{docente.nombre_docente} {docente.apellido_docente}",
+            'curso_nombre': pac.id_curso.nombrecurso,
+            'mensaje': f"Nuevo caso disponible: {pac.nombre}",
+            'url': '/cursosestudiante/mis-cursos/',
+            'fecha': None,
+        })
+
+    # Ordenar: Ponemos las NO leídas primero, luego por fecha (simulado)
+    notificaciones_lista.sort(key=lambda x: x['leido']) 
+    
+    # Cortar a 10 items totales
+    notificaciones_lista = notificaciones_lista[:10]
+
+    # Contar reales no leídas para el badge rojo
+    count_no_leidas = sum(1 for n in notificaciones_lista if not n['leido'])
+
+    context = {
+        'user': estudiante,
+        'notificaciones': notificaciones_lista,
+        'count_no_leidas': count_no_leidas
+    }
+    return render(request, 'cursosestudiante/menuestudiante.html', context)
+
+# --- NUEVA FUNCIÓN AJAX ---
+@csrf_exempt
+def marcar_notificacion_vista(request):
+    if request.method == 'POST':
+        estudiante_id = request.session.get('estudiante_id')
+        if not estudiante_id: return JsonResponse({'ok': False})
+        
+        try:
+            estudiante = Estudiante.objects.get(id=estudiante_id)
+            # Leer datos de la petición JS
+            import json
+            data = json.loads(request.body)
+            tipo = data.get('tipo')
+            ref_id = data.get('id')
+            
+            # Guardar en base de datos que ya se vio
+            NotificacionVista.objects.get_or_create(
+                estudiante=estudiante,
+                tipo=tipo,
+                referencia_id=ref_id
+            )
+            return JsonResponse({'ok': True})
+        except Exception as e:
+            return JsonResponse({'ok': False, 'error': str(e)})
+    return JsonResponse({'ok': False})
 
 def RevisarAvancesView(request):
     usuario_id = request.session.get('usuario_id')

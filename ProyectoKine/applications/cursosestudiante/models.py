@@ -72,3 +72,14 @@ class SolicitudRevision(models.Model):
         verbose_name = "Solicitud de Revisión"
         verbose_name_plural = "Solicitudes de Revisión"
         ordering = ['-fecha_solicitud']
+
+class NotificacionVista(models.Model):
+    estudiante = models.ForeignKey(Estudiante, on_delete=models.CASCADE)
+    tipo = models.CharField(max_length=20) # 'SOLICITUD' o 'PACIENTE'
+    referencia_id = models.IntegerField() # El ID de la solicitud o del paciente
+    fecha_vista = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('estudiante', 'tipo', 'referencia_id')
+        verbose_name = "Notificación Vista"
+        verbose_name_plural = "Notificaciones Vistas"

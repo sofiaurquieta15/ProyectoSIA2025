@@ -22,6 +22,30 @@
     }
     .fade-in { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    
+    /* Estilos extra para las notificaciones (Bootstrap icons support) */
+    .notification-card {
+        background-color: white;
+        border-radius: 0.75rem; /* rounded-xl */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+        overflow: hidden;
+    }
+    .notification-item {
+        transition: background-color 0.2s;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .notification-item:hover {
+        background-color: #f9fafb;
+    }
+    .notification-item:last-child {
+        border-bottom: none;
+    }
+    .notif-unread {
+        background-color: #eff6ff; /* bg-blue-50 */
+    }
+    .notif-unread:hover {
+        background-color: #dbeafe; /* bg-blue-100 */
+    }
 </style>
 
 <div class="flex-grow container mx-auto py-10 px-4 sm:px-6 lg:px-8 relative">
@@ -79,37 +103,92 @@
                 <span>Hola, {{ user.nombre }} {{ user.apellido }}</span>
             </button>
 
-            <div class="bg-white shadow-2xl rounded-xl border-blue-custom p-6 h-fit w-full">
-                <h3 class="text-xl font-extrabold text-blue-900 mb-4 flex items-center gap-2 border-b pb-2">
-                    📌 Información Rápida
-                </h3>
-
-                <div class="space-y-4 text-sm">
-                    <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <p class="font-bold flex items-center gap-2 text-yellow-800">
-                            ⚠️ Recordatorio:
-                        </p>
-                        <p class="text-gray-700 mt-1">Revisa tus avances pendientes del curso.</p>
+            <div class="notification-card transition-all duration-300">
+                <div class="px-4 py-3 border-b flex justify-between items-center bg-gray-50 cursor-pointer hover:bg-gray-100 transition" 
+                     onclick="toggleNotificaciones()">
+                    
+                    <div class="flex items-center gap-2">
+                        <h5 class="text-blue-900 font-bold m-0 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bell-fill" viewBox="0 0 16 16">
+                                <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zm.995-14.901a1 1 0 1 0-1.99 0A5.002 5.002 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901z"/>
+                            </svg>
+                            Notificaciones
+                        </h5>
+                        <svg id="chevron-notif" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-gray-500 transition-transform duration-300 -rotate-90" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                        </svg>
                     </div>
 
-                    <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p class="font-bold flex items-center gap-2 text-blue-800">
-                            📅 Próxima fecha:
-                        </p>
-                        <p class="text-gray-700 mt-1">Nuevas evaluaciones estarán disponibles pronto.</p>
-                    </div>
+                    {% if count_no_leidas > 0 %}
+                        <span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{{ count_no_leidas }} nuevas</span>
+                    {% endif %}
+                </div>
 
-                    <div class="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                        <p class="font-bold flex items-center gap-2 text-orange-800">
-                            💡 Consejo del día:
-                        </p>
-                        <p class="text-gray-700 mt-1">Revisa el caso clínico al menos 2 veces.</p>
-                    </div>
+                <div id="notificaciones-body" class="hidden flex flex-col max-h-96 overflow-y-auto transition-all duration-300">
+                    {% for notif in notificaciones %}
+                        <a href="{{ notif.url }}" 
+                           class="p-3 flex justify-between items-start gap-3 no-underline text-gray-800 hover:bg-blue-50 transition border-b border-gray-100 last:border-0 {% if notif.leido %}opacity-60 bg-gray-50{% endif %}"
+                           onclick="marcarLeido('{{ notif.tipo_obj }}', {{ notif.id_obj }}); event.stopPropagation();">
+                            
+                            <div class="mt-1 shrink-0 relative">
+                                {% if notif.tipo_icono == 'RESPUESTA_SOLICITUD' %}
+                                    <div class="bg-green-100 p-2 rounded-full">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-green-600 block" viewBox="0 0 16 16">
+                                            <path d="M5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                                            <path d="m2.165 15.803.02-.004c1.83-.363 2.948-.842 3.468-1.105A9.06 9.06 0 0 0 8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6-.097 1.016-.417 2.13-.771 2.966-.079.186.074.394.273.362 2.256-.37 3.597-.938 4.18-1.234A9.06 9.06 0 0 0 8 15z"/>
+                                        </svg>
+                                    </div>
+                                {% else %}
+                                    <div class="bg-blue-100 p-2 rounded-full">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="text-blue-600 block" viewBox="0 0 16 16">
+                                            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                                        </svg>
+                                    </div>
+                                {% endif %}
+
+                                {% if not notif.leido %}
+                                    <span class="absolute -bottom-1 -left-1 h-3 w-3 bg-red-500 border-2 border-white rounded-full shadow-sm"></span>
+                                {% endif %}
+                            </div>
+
+                            <div class="flex-grow">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="font-bold text-gray-900 text-sm">
+                                        {{ notif.docente_nombre }}
+                                    </span>
+                                    <span class="text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full 
+                                        {% if notif.tipo_icono == 'RESPUESTA_SOLICITUD' %} bg-green-100 text-green-800 border border-green-200
+                                        {% else %} bg-blue-100 text-blue-800 border border-blue-200 {% endif %}">
+                                        {{ notif.categoria }}
+                                    </span>
+                                </div>
+
+                                <p class="text-xs text-gray-600 mb-1 leading-snug">
+                                    {{ notif.mensaje }}
+                                </p>
+                                
+                                <div class="flex justify-between items-end mt-1">
+                                    <span class="text-[10px] text-gray-400 italic truncate max-w-[120px]">
+                                        {{ notif.curso_nombre }}
+                                    </span>
+                                    {% if notif.fecha %}
+                                        <small class="text-[10px] text-blue-600 font-bold whitespace-nowrap">{{ notif.fecha|timesince }} atrás</small>
+                                    {% else %}
+                                        <small class="text-[10px] text-blue-600 font-bold whitespace-nowrap">¡Nuevo!</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                    {% empty %}
+                        <div class="p-8 text-center text-gray-500">
+                            <span class="text-2xl block mb-2 opacity-50">📭</span>
+                            <p class="text-sm">No tienes notificaciones recientes.</p>
+                        </div>
+                    {% endfor %}
                 </div>
             </div>
 
         </div>
-
     </div>
 </div>
 
@@ -234,6 +313,33 @@
 </div>
 
 <script>
+function marcarLeido(tipo, id) {
+    // Enviamos la petición al servidor sin detener la navegación
+    fetch('/cursosestudiante/api/notificacion-vista/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tipo: tipo, id: id })
+    });
+}
+
+function toggleNotificaciones() {
+    const body = document.getElementById('notificaciones-body');
+    const chevron = document.getElementById('chevron-notif');
+                
+    if (body.classList.contains('hidden')) {
+        body.classList.remove('hidden');
+        chevron.classList.remove('-rotate-90'); // Flecha abajo
+    } else {
+        body.classList.add('hidden');
+        chevron.classList.add('-rotate-90'); // Flecha lado (cerrado)
+    }
+}
+</script>
+
+<script>
+    // Lógica del Modal
     function abrirModal(id) { 
         const modal = document.getElementById(id);
         const content = modal.querySelector('#modalContent');

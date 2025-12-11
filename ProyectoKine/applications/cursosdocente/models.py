@@ -14,3 +14,13 @@ class Curso(models.Model):
 
     def __str__(self):
         return self.nombrecurso
+
+class NotificacionDocenteVista(models.Model):
+    docente = models.ForeignKey(Docente, on_delete=models.CASCADE)
+    solicitud_id = models.IntegerField() # Guardamos el ID de la solicitud vista
+    fecha_vista = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('docente', 'solicitud_id')
+        verbose_name = "Notificación Docente Vista"
+        verbose_name_plural = "Notificaciones Docente Vistas"
