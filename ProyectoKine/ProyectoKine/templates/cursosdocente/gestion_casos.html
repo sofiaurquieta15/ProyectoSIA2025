@@ -451,6 +451,20 @@ function mostrarPopupExito(mensaje) {
         location.reload();
     }, 1500);
 }
+
+// Función para mostrar éxito SIN recargar la página (mantiene datos del formulario)
+function mostrarPopupExitoSinRecarga(mensaje) {
+    const modal = document.getElementById('modal-exito');
+    document.getElementById('mensaje-exito-texto').innerText = mensaje;
+    
+    // Mostrar modal
+    modal.classList.remove('hidden');
+    
+    // Ocultar modal después de 2 segundos PERO SIN RECARGAR
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 2000);
+}
 </script>
 
 <script id="data-pacientes" type="application/json">
@@ -479,19 +493,20 @@ function validarYGuardarPaciente(url) {
     form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
     form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500', 'bg-red-50'));
 
-    let inputEdad = document.getElementById('id_edad') || form.querySelector('[name="edad"]');
+    // --- CORRECCIÓN AQUÍ ---
+    // Usamos form.querySelector en lugar de getElementById para asegurar que
+    // tomamos el input de ESTE formulario y no el del modal de Editar.
+    let inputEdad = form.querySelector('[name="edad"]');
 
     // 1. Validación Local (Edad)
     if (inputEdad) {
         const edad = parseInt(inputEdad.value);
         if (isNaN(edad) || edad < 0 || edad > 110) {
             
-            // Usamos la misma lógica visual: Popup General + Mensaje Inline simulado
-            mostrarPopupError("Tienes datos incompletos.");
+            mostrarPopupError("Tienes datos incorrectos.");
             
-            // Simular estructura de error para usar nuestra funcion
-            // (Esto pinta el mensaje debajo del label Edad)
-            const errorSimulado = { 'edad': ['Rango inválido'] }; 
+            // Mensaje específico
+            const errorSimulado = { 'edad': ['La edad debe ser de 0 a 110'] }; 
             marcarErroresInline(formId, errorSimulado);
             
             return; // Detener
@@ -507,12 +522,13 @@ function validarYGuardarPaciente(url) {
             cerrarModal('modal-crear-paciente');
             mostrarPopupExito("Paciente creado exitosamente"); 
         } else {
-            // ERROR DJANGO
+            // ERROR DEL SERVIDOR
             mostrarPopupError("Tienes datos incompletos.");
             marcarErroresInline(formId, data.error);
         }
     })
     .catch(error => {
+        console.error(error);
         mostrarPopupError("Error de conexión.");
     });
 }
@@ -692,7 +708,7 @@ function guardarTipoCaso() {
     const formData = new FormData(form);
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    // Limpiar
+    // Limpiar errores previos
     form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
 
     fetch("{% url 'cursos:crear_tipo_caso_ajax' %}", { 
@@ -703,25 +719,28 @@ function guardarTipoCaso() {
     .then(r => r.json())
     .then(data => {
         if(data.ok) {
-            // ... (Tu lógica de agregar al select se mantiene igual) ...
+            // Agregar el nuevo tipo al Select del formulario de Paciente (que está debajo)
             let select = document.getElementById('id_tipo_caso');
             if (!select) select = document.querySelector('select[name="tipo_caso"]');
+            
             if (select) {
                 const nuevaOpcion = new Option(data.nombre, data.id);
                 select.add(nuevaOpcion);
-                select.value = data.id;
+                select.value = data.id; // Seleccionarlo automáticamente
             }
             
             form.reset();
             cerrarModal('modal-tipo-caso');
-            mostrarPopupExito("Nuevo tipo de caso creado.");
+            
+            // USAMOS LA NUEVA FUNCIÓN QUE NO RECARGA LA PÁGINA
+            mostrarPopupExitoSinRecarga("Nuevo tipo de caso creado.");
         } else { 
-            // ERROR
             mostrarPopupError("Tienes datos incompletos.");
             marcarErroresInline(formId, data.error);
         }
     })
     .catch(error => {
+        console.error(error);
         mostrarPopupError("Error de conexión.");
     });
 }
@@ -735,12 +754,11 @@ function mostrarPopupError(mensajeCustom) {
     document.getElementById('modal-error').classList.remove('hidden');
 }
 
-// 2. ERRORES INLINE (Pone "¡Falta completar!" debajo del label)
 function marcarErroresInline(formId, errorData) {
     const form = document.getElementById(formId);
     if (!form) return;
 
-    // A. Limpiar errores previos (borrar los mensajes rojos viejos)
+    // A. Limpiar errores previos
     form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
     form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500', 'bg-red-50'));
 
@@ -757,32 +775,44 @@ function marcarErroresInline(formId, errorData) {
                 const input = form.querySelector(`[name="${campo}"]`);
                 
                 if (input) {
-                    // Marcar el borde del input en rojo
                     input.classList.add('border-red-500', 'bg-red-50');
 
-                    // 2. Buscar el Label asociado para poner el texto debajo
+                    // 2. Buscar el Label asociado
                     let label = null;
-                    
-                    // Intento 1: Label por atributo 'for'
                     if (input.id) {
                         label = form.querySelector(`label[for="${input.id}"]`);
                     }
-                    
-                    // Intento 2: Label cercano (hermano anterior o padre)
-                    if (!label) {
-                        // Buscar en el contenedor padre (para tus formularios manuales)
-                        if (input.parentElement) {
-                            label = input.parentElement.querySelector('label');
-                        }
+                    if (!label && input.parentElement) {
+                        label = input.parentElement.querySelector('label');
                     }
 
-                    // 3. Insertar mensaje "¡Falta completar!"
+                    // 3. Insertar mensaje DINÁMICO
                     if (label) {
+                        let contenidoError = errorData[campo];
+                        let mensajeTexto = "¡Falta completar!"; // Texto por defecto
+
+                        // --- LÓGICA DE DETECCIÓN DE FORMATO ---
+                        if (Array.isArray(contenidoError)) {
+                            let primerError = contenidoError[0];
+                            
+                            // Caso 1: Error de Django (es un objeto {message: "...", code: "..."})
+                            if (typeof primerError === 'object' && primerError !== null && primerError.message) {
+                                mensajeTexto = primerError.message;
+                            } 
+                            // Caso 2: Error manual (es un string simple "La edad debe ser...")
+                            else {
+                                mensajeTexto = primerError;
+                            }
+                        } else {
+                            // Caso 3: String directo (raro, pero posible)
+                            mensajeTexto = contenidoError;
+                        }
+                        // ----------------------------------------
+
                         const msg = document.createElement('div');
                         msg.className = 'error-text-inline text-red-600 text-xs font-bold mt-1 mb-1 animate-pulse';
-                        msg.innerText = '⚠️ ¡Falta completar!';
+                        msg.innerText = `⚠️ ${mensajeTexto}`;
                         
-                        // Insertar JUSTO DESPUÉS del label (antes del input)
                         label.after(msg);
                     }
                 }

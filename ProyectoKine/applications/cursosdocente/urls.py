@@ -11,6 +11,7 @@ urlpatterns = [
     # --- NUEVO MÓDULO DE GESTIÓN (Agrega todo esto) ---
     path('mis-cursos/', views.GestionCursosDocenteView, name='mis_cursos'), # Vista gestión cursos
     path('enrolar-estudiante/', views.enrolar_estudiante, name='enrolar_estudiante'),
+    path('api/buscar-estudiantes/', views.buscar_estudiantes_disponibles, name='buscar_estudiantes_disponibles'),
     path('desenrolar-estudiante/', views.desenrolar_estudiante, name='desenrolar_estudiante'),
     path('revisiones/', views.RevisionesDocenteView, name='revisiones_docente'),
 

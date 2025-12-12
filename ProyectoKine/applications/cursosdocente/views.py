@@ -260,6 +260,51 @@ def enrolar_estudiante(request):
     return JsonResponse({'ok': False, 'error': 'Método no permitido'})
 
 @csrf_exempt
+def buscar_estudiantes_disponibles(request):
+    """
+    Busca estudiantes que NO estén enrolados en el curso dado.
+    Filtra por nombre, apellido o correo.
+    """
+    if request.method == "GET":
+        curso_id = request.GET.get("curso_id")
+        term = request.GET.get("term", "").strip()
+
+        if not curso_id:
+            return JsonResponse({"ok": False, "error": "Falta ID del curso"})
+
+        # 1. Obtener IDs de estudiantes YA inscritos en este curso
+        inscritos_ids = Enrolamiento.objects.filter(
+            curso_id=curso_id
+        ).values_list('estudiante_id', flat=True)
+
+        # 2. Filtrar estudiantes EXCLUYENDO los inscritos
+        estudiantes = Estudiante.objects.exclude(id__in=inscritos_ids)
+
+        # 3. Aplicar filtro de búsqueda (si el usuario escribió algo)
+        if term:
+            estudiantes = estudiantes.filter(
+                Q(nombre__icontains=term) | 
+                Q(apellido__icontains=term) | 
+                Q(correo_institucional__icontains=term)
+            )
+        
+        # Limitar resultados para no sobrecargar (ej: 20)
+        estudiantes = estudiantes.order_by('nombre')[:20]
+
+        data = []
+        for est in estudiantes:
+            data.append({
+                "id": est.id,
+                "nombre": est.nombre,
+                "apellido": est.apellido,
+                "correo": est.correo_institucional
+            })
+
+        return JsonResponse({"ok": True, "estudiantes": data})
+    
+    return JsonResponse({"ok": False, "error": "Método no permitido"})
+
+@csrf_exempt
 def desenrolar_estudiante(request):
     if request.method == 'POST':
         docente_id = request.session.get('usuario_id')

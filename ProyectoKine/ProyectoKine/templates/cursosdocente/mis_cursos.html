@@ -231,21 +231,28 @@
 </div>
 
 <div id="modal-enrolar" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 px-4">
-    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-blue-custom relative">
+    <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg border-blue-custom relative flex flex-col max-h-[85vh]">
         <button onclick="document.getElementById('modal-enrolar').classList.add('hidden')" class="absolute top-4 right-4 text-gray-500 hover:text-red-600 font-bold text-xl">&times;</button>
         
-        <h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">Enrolar Estudiante</h3>
+        <h3 class="text-2xl font-bold text-gray-900 mb-2 text-center">Enrolar Estudiante</h3>
+        <p class="text-sm text-gray-500 text-center mb-6">Busca estudiantes no inscritos en este curso.</p>
         
-        <div class="mb-6">
-            <label class="block text-gray-700 font-bold mb-2">Correo Institucional</label>
-            <input type="email" id="correo-enrolar" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900" placeholder="ejemplo@alumnos.ucn.cl">
+        <div class="mb-4 relative">
+            <input type="text" 
+                   id="input-buscar-estudiante" 
+                   class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 bg-gray-50" 
+                   placeholder="Buscar por nombre, apellido o correo..."
+                   oninput="buscarEstudiantes()">
+            <span class="absolute left-3 top-3.5 text-gray-400">🔍</span>
         </div>
 
-        <button onclick="enviarEnrolamiento()" class="w-full bg-blue-custom hover:bg-blue-800 text-white font-bold py-3 rounded-full transition shadow-lg uppercase">
-            CONFIRMAR ENROLAMIENTO
-        </button>
+        <div class="flex-grow overflow-y-auto border-t border-gray-200 mt-2">
+            <div id="lista-estudiantes-resultados" class="divide-y divide-gray-100">
+                <p class="text-center text-gray-400 py-8 italic">Escribe para buscar o espera la carga...</p>
+            </div>
+        </div>
         
-        <p id="msg-enrolar" class="mt-4 text-center text-sm font-bold"></p>
+        <p id="msg-enrolar" class="mt-4 text-center text-sm font-bold h-6"></p>
     </div>
 </div>
 
@@ -345,35 +352,111 @@ function verStatsPaciente(targetId, btn) {
 // === ENROLAR ===
 function abrirModalEnrolar() {
     document.getElementById('msg-enrolar').innerText = "";
-    document.getElementById('correo-enrolar').value = "";
+    document.getElementById('input-buscar-estudiante').value = "";
     document.getElementById('modal-enrolar').classList.remove('hidden');
+    
+    // Cargar estudiantes inmediatamente al abrir
+    buscarEstudiantes();
 }
 
-function enviarEnrolamiento() {
-    const correo = document.getElementById('correo-enrolar').value;
-    const msg = document.getElementById('msg-enrolar');
+// 2. Función de Búsqueda (Conectada al Backend)
+let timeoutBusqueda = null;
+
+function buscarEstudiantes() {
+    const termino = document.getElementById('input-buscar-estudiante').value;
+    const contenedor = document.getElementById('lista-estudiantes-resultados');
+
+    // Debounce para no saturar el servidor si escriben rápido
+    clearTimeout(timeoutBusqueda);
     
-    if(!correo) {
-        msg.innerText = "Ingresa un correo.";
-        msg.className = "mt-4 text-center text-sm font-bold text-red-600";
+    timeoutBusqueda = setTimeout(() => {
+        contenedor.innerHTML = '<p class="text-center text-gray-400 py-4">Cargando...</p>';
+
+        fetch(`/cursos/api/buscar-estudiantes/?curso_id=${cursoIdActual}&term=${termino}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    renderizarListaEstudiantes(data.estudiantes);
+                } else {
+                    contenedor.innerHTML = `<p class="text-center text-red-500 py-4">${data.error}</p>`;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                contenedor.innerHTML = '<p class="text-center text-red-500 py-4">Error de conexión</p>';
+            });
+    }, 300); // Espera 300ms después de dejar de escribir
+}
+
+// 3. Renderizar la lista
+function renderizarListaEstudiantes(estudiantes) {
+    const contenedor = document.getElementById('lista-estudiantes-resultados');
+    contenedor.innerHTML = '';
+
+    if (estudiantes.length === 0) {
+        contenedor.innerHTML = '<p class="text-center text-gray-400 py-8">No se encontraron estudiantes disponibles.</p>';
         return;
     }
 
+    estudiantes.forEach(est => {
+        const item = document.createElement('div');
+        item.className = "p-3 hover:bg-blue-50 transition flex justify-between items-center group";
+        
+        item.innerHTML = `
+            <div>
+                <p class="font-bold text-gray-800 text-sm">${est.nombre} ${est.apellido}</p>
+                <p class="text-xs text-gray-500">${est.correo}</p>
+            </div>
+            <button onclick="seleccionarYEnrolar('${est.correo}')" 
+                    class="bg-blue-900 hover:bg-blue-700 text-white text-xs font-bold py-2 px-4 rounded-full shadow transition transform group-hover:scale-105">
+                AGREGAR +
+            </button>
+        `;
+        contenedor.appendChild(item);
+    });
+}
+
+// 4. Acción de Enrolar (Reutiliza tu lógica existente en el backend)
+function seleccionarYEnrolar(correo) {
+    const msg = document.getElementById('msg-enrolar');
+    
+    // 1. Mostrar mensaje de carga
+    msg.innerText = "Procesando enrolamiento...";
+    msg.className = "mt-4 text-center text-sm font-bold text-blue-600";
+
     fetch("{% url 'cursos:enrolar_estudiante' %}", {
         method: "POST",
-        headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/x-www-form-urlencoded" },
+        headers: { 
+            "X-CSRFToken": "{{ csrf_token }}", 
+            "Content-Type": "application/x-www-form-urlencoded" 
+        },
         body: `curso_id=${cursoIdActual}&correo_estudiante=${correo}`
     })
     .then(r => r.json())
     .then(data => {
         if(data.ok) {
-            msg.innerText = data.msg;
+            // 2. Mostrar éxito y actualizar la lista
+            msg.innerText = `¡${correo} enrolado correctamente!`;
             msg.className = "mt-4 text-center text-sm font-bold text-green-600";
-            setTimeout(() => location.reload(), 1500);
+            
+            // *** ESTA LLAMADA RECARGA LA LISTA Y QUITA AL ESTUDIANTE RECIÉN AGREGADO ***
+            buscarEstudiantes(); 
+            
+            // El popup NO se cerrará porque no hay ninguna línea de código que lo haga.
+
         } else {
+            // 3. Mostrar error
             msg.innerText = data.error;
             msg.className = "mt-4 text-center text-sm font-bold text-red-600";
         }
+        
+        // Limpiar el mensaje después de 3 segundos para que no interfiera en la siguiente acción
+        setTimeout(() => msg.innerText = "", 3000);
+    })
+    .catch(e => {
+        msg.innerText = "Error de conexión con el servidor.";
+        msg.className = "mt-4 text-center text-sm font-bold text-red-600";
+        setTimeout(() => msg.innerText = "", 3000);
     });
 }
 
