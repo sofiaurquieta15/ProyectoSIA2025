@@ -16,7 +16,7 @@ Desarrollado bajo un enfoque ágil SCRUMBAN, KineLearn busca integrar la tecnolo
 El proyecto ofrece dos métodos de ejecución: 1. **Mediante contenedores** (usando Docker) o 2. **Local** (usando entorno virtual y PostgreSQL) 
 
 ### Opción 1: Instalación Mediante Contenedores (Recomendado)
-- ***Requisitos: tener Docker instalado y y el motor de contenedores en estado "running"***
+- ***Requisitos: tener Docker instalado y el motor de contenedores en estado "running"***
 1. Entrar al terminal en la carpeta principal del proyecto
 2. Creación del archivo de variables de entorno (.env):
 3. Dentro del nuevo archivo, crear configuraciones y credenciales de la base de datos:
