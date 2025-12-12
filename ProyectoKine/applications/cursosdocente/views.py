@@ -451,7 +451,10 @@ def crear_tipo_caso_ajax(request):
         if form.is_valid():
             tipo = form.save()
             return JsonResponse({'ok': True, 'id': tipo.id, 'nombre': tipo.nombre})
-        return JsonResponse({'ok': False, 'error': 'Error al crear tipo.'})
+        
+        # CORRECCIÓN: Devolver los errores del formulario
+        return JsonResponse({'ok': False, 'error': form.errors.as_json()})
+        
     return JsonResponse({'ok': False, 'error': 'Método no permitido'})
 
 # --- AJAX: Crear Paciente ---
@@ -465,7 +468,8 @@ def crear_paciente_ajax(request):
                 form.save()
                 return JsonResponse({'ok': True, 'msg': 'Paciente creado exitosamente.'})
             else:
-                return JsonResponse({'ok': False, 'error': str(form.errors)})
+                # CORRECCIÓN: Usar .as_json() en lugar de str()
+                return JsonResponse({'ok': False, 'error': form.errors.as_json()})
         except Exception as e:
             return JsonResponse({'ok': False, 'error': str(e)})
     return JsonResponse({'ok': False, 'error': 'Método no permitido'})
@@ -504,6 +508,7 @@ def guardar_edicion_ajax(request, modelo, pk):
         usuario_id = request.session.get('usuario_id')
         try:
             docente = Docente.objects.get(id=usuario_id)
+            # ... (código de selección de modelo igual) ...
             if modelo == 'curso':
                 obj = get_object_or_404(Curso, pk=pk)
                 form = CursoForm(request.POST, instance=obj)
@@ -514,7 +519,10 @@ def guardar_edicion_ajax(request, modelo, pk):
             if form.is_valid():
                 form.save()
                 return JsonResponse({'ok': True})
-            return JsonResponse({'ok': False, 'error': str(form.errors)})
+            
+            # CORRECCIÓN: Usar .as_json()
+            return JsonResponse({'ok': False, 'error': form.errors.as_json()})
+            
         except Exception as e:
              return JsonResponse({'ok': False, 'error': str(e)})
     return JsonResponse({'ok': False, 'error': 'Método no permitido'})
@@ -569,42 +577,60 @@ def ConfigurarEtapasView(request, paciente_id):
 def guardar_pregunta_etapa(request):
     if request.method == 'POST':
         try:
-            pregunta_id = request.POST.get('pregunta_id')
-            etapa_id = request.POST.get('etapa_id')
-            texto_titulo = request.POST.get('texto_pregunta')
-            video_url = request.POST.get('video_url')
-            
-            if pregunta_id:
-                pregunta = Pregunta.objects.get(pk=pregunta_id)
-                pregunta.titulo = texto_titulo
-                pregunta.urlvideo = video_url
-                pregunta.save()
-                pregunta.opciones.all().delete() # Reemplazar opciones
-            else:
-                etapa = Etapa.objects.get(id=etapa_id)
-                docente = Docente.objects.get(id=request.session.get('usuario_id'))
-                pregunta = Pregunta.objects.create(
-                    id_etapa=etapa, 
-                    titulo=texto_titulo, 
-                    tipo='MULTIPLE',
-                    docente=docente,
-                    urlvideo=video_url
-                )
-            
-            correcta_idx = int(request.POST.get('correcta_index'))
-            for i in range(1, 5):
-                texto_resp = request.POST.get(f'respuesta_{i}')
-                texto_retro = request.POST.get(f'retro_{i}', '')
-                OpcionMultiple.objects.create(
-                    pregunta=pregunta, 
-                    texto_opcion=texto_resp, 
-                    is_correct=(i == correcta_idx),
-                    retroalimentacion=texto_retro
-                )
+            with transaction.atomic():
+                # 1. Obtener datos del formulario
+                etapa_id = request.POST.get('etapa_id')
+                pregunta_id = request.POST.get('pregunta_id')
+                titulo = request.POST.get('texto_pregunta')
+                video_url = request.POST.get('video_url', '')
+                
+                # Obtenemos el índice de la correcta
+                try:
+                    correcta_index = int(request.POST.get('correcta_index'))
+                except (ValueError, TypeError):
+                    return JsonResponse({'ok': False, 'error': 'Debes seleccionar una alternativa correcta válida.'})
+
+                # 2. Crear o Actualizar la Pregunta
+                if pregunta_id:
+                    # === MODO EDICIÓN ===
+                    preg = get_object_or_404(Pregunta, id=pregunta_id)
+                    preg.titulo = titulo
+                    preg.urlvideo = video_url
+                    preg.save()
+                    
+                    # Borramos opciones viejas para evitar duplicados/errores
+                    preg.opciones.all().delete() 
+                else:
+                    # === MODO CREACIÓN ===
+                    etapa = get_object_or_404(Etapa, id=etapa_id)
+                    preg = Pregunta.objects.create(
+                        id_etapa=etapa,
+                        docente=request.user.docente, # Asumiendo que el usuario logueado es el docente
+                        titulo=titulo,
+                        urlvideo=video_url,
+                        tipo='MULTIPLE' # Importante definir el tipo
+                    )
+
+                # 3. Crear las 4 opciones (CORREGIDO)
+                for i in range(1, 5):
+                    texto_op = request.POST.get(f'respuesta_{i}')
+                    retro_op = request.POST.get(f'retro_{i}', '')
+                    es_la_correcta = (i == correcta_index)
+                    
+                    if texto_op:
+                        OpcionMultiple.objects.create(
+                            pregunta=preg,               # CORREGIDO: 'pregunta' en vez de 'id_pregunta'
+                            texto_opcion=texto_op,       # CORREGIDO: 'texto_opcion' (verifica si es singular)
+                            retroalimentacion=retro_op,
+                            is_correct=es_la_correcta    # CORREGIDO: 'is_correct' en vez de 'es_correcta'
+                        )
+
             return JsonResponse({'ok': True})
+            
         except Exception as e:
             return JsonResponse({'ok': False, 'error': str(e)})
-    return JsonResponse({'ok': False})
+            
+    return JsonResponse({'ok': False, 'error': 'Método no permitido'})
 
 def obtener_pregunta_api(request, pk):
     try:

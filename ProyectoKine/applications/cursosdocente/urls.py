@@ -25,6 +25,8 @@ urlpatterns = [
     # APIs AJAX (Para que los formularios funcionen sin recargar)
     # Creación
     path('api/crear-curso/', views.crear_curso_ajax, name='crear_curso_ajax'),
+    path('api/obtener/<str:modelo>/<int:pk>/', views.obtener_datos_edicion, name='obtener_datos_edicion'),
+    path('api/guardar/<str:modelo>/<int:pk>/', views.guardar_edicion_ajax, name='guardar_edicion_ajax'),
     path('api/crear-tipo-caso/', views.crear_tipo_caso_ajax, name='crear_tipo_caso_ajax'),
     path('api/crear-paciente/', views.crear_paciente_ajax, name='crear_paciente_ajax'),
     

@@ -40,9 +40,15 @@
                 <h3 class="text-2xl font-bold text-gray-800 uppercase">Crear Clase</h3>
                 <p class="text-sm text-gray-600 mt-2">Define el nombre y objetivos de la asignatura.</p>
             </div>
-            <button onclick="abrirModal('modal-crear-curso')" class="btn-blue font-bold py-3 rounded-full w-full uppercase shadow">CREAR</button>
+            <div class="flex gap-2 w-full mt-4">
+                <button onclick="abrirModal('modal-crear-curso')" class="btn-blue flex-1 py-3 rounded-l-full uppercase shadow font-bold text-sm">
+                    Crear
+                </button>
+                <button onclick="abrirModal('modal-lista-cursos')" class="bg-gray-500 hover:bg-gray-600 text-white flex-1 py-3 rounded-r-full uppercase shadow font-bold text-sm transition border-l border-white">
+                    Editar
+                </button>
+            </div>
         </div>
-
         <div class="bg-white p-6 rounded-xl shadow-lg border-blue-custom text-center flex flex-col justify-between h-80 hover:scale-105 transition duration-300">
             <div>
                 <div class="text-5xl mb-4">👤</div>
@@ -68,20 +74,90 @@
 </div>
 
 <div id="modal-crear-curso" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="bg-white p-6 rounded-lg shadow-xl w-96 border-blue-custom">
-        <h3 class="text-xl font-bold mb-4 text-center">Nuevo Curso</h3>
+    <div class="bg-white p-6 rounded-lg shadow-xl w-96 border-blue-custom relative">
+        
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 class="text-xl font-bold text-gray-800">Nuevo Curso</h3>
+            <button onclick="cerrarModal('modal-crear-curso')" class="text-gray-400 hover:text-red-500 font-bold text-2xl leading-none">&times;</button>
+        </div>
+
         <form id="form-crear-curso">
             {% csrf_token %}
             {{ form_curso.as_p }}
             <button type="button" onclick="enviarFormulario('crear-curso', '{% url 'cursos:crear_curso_ajax' %}')" class="btn-blue w-full py-2 rounded mt-4 font-bold">GUARDAR</button>
-            <button type="button" onclick="cerrarModal('modal-crear-curso')" class="text-gray-500 w-full py-2 mt-2 text-sm underline">Cancelar</button>
         </form>
     </div>
 </div>
 
+<div id="modal-lista-cursos" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-96 border-blue-custom">
+        
+        <div class="flex justify-between items-center border-b pb-2 mb-2">
+            <h3 class="text-xl font-bold text-gray-800">Editar Curso</h3>
+            <button onclick="cerrarModal('modal-lista-cursos')" class="text-gray-400 hover:text-red-500 font-bold text-2xl leading-none">&times;</button>
+        </div>
+
+        <p class="text-sm text-gray-500 mb-4">Selecciona el curso a modificar:</p>
+        
+        <div class="max-h-60 overflow-y-auto space-y-2">
+            {% for curso in mis_cursos %}
+                <button onclick="cargarCursoParaEditar({{ curso.id }})" 
+                        class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-blue-50 hover:text-blue-800 rounded border border-gray-200 transition flex justify-between items-center group">
+                    <span class="font-semibold">{{ curso.nombrecurso }}</span>
+                    <span class="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded group-hover:bg-blue-200 group-hover:text-blue-800">Editar</span>
+                </button>
+            {% empty %}
+                <p class="text-center text-gray-500 py-4">No tienes cursos creados.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div id="modal-editar-curso" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[60]">
+    <div class="bg-white p-6 rounded-lg shadow-xl w-96 border-blue-custom relative">
+        
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 class="text-xl font-bold text-blue-900">Editar Detalles</h3>
+            <button onclick="cerrarModal('modal-editar-curso')" class="text-gray-400 hover:text-red-500 font-bold text-2xl leading-none">&times;</button>
+        </div>
+        
+        <form id="form-editar-curso">
+            <input type="hidden" id="edit_curso_id" name="curso_id">
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-1">Nombre del Curso</label>
+                <input type="text" id="edit_nombrecurso" name="nombrecurso" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-1">Objetivos</label>
+                <textarea id="edit_objetivos" name="objetivos" rows="3" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+            </div>
+
+            <button type="button" onclick="guardarCambiosCurso()" class="btn-blue w-full py-2 rounded font-bold shadow">GUARDAR CAMBIOS</button>
+        </form>
+    </div>
+</div>
+
+<div id="modal-exito" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[70]">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl w-80 text-center transform transition-all scale-100">
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+            <svg class="h-10 w-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-800 mb-2">¡Guardado!</h3>
+        <p class="text-gray-500" id="mensaje-exito-texto">Operación realizada con éxito.</p>
+    </div>
+</div>
+
 <div id="modal-crear-paciente" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="bg-white p-8 rounded-lg shadow-xl w-[700px] border-blue-custom max-h-[90vh] overflow-y-auto">
-        <h3 class="text-2xl font-bold mb-6 text-center text-blue-900 border-b pb-2">Nuevo Paciente</h3>
+    <div class="bg-white p-8 rounded-lg shadow-xl w-[700px] border-blue-custom max-h-[90vh] overflow-y-auto relative">
+        
+        <div class="flex justify-between items-center mb-6 border-b pb-2">
+            <h3 class="text-2xl font-bold text-blue-900">Nuevo Paciente</h3>
+            <button onclick="cerrarModal('modal-crear-paciente')" class="text-gray-400 hover:text-red-500 font-bold text-2xl leading-none">&times;</button>
+        </div>
         
         <form id="form-crear-paciente">
             {% csrf_token %}
@@ -96,6 +172,7 @@
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">Edad</label>
                     {{ form_paciente.edad }}
+                    <p class="text-xs text-gray-400 mt-1">Rango permitido: 0 a 110 años</p>
                 </div>
 
                 <div>
@@ -126,12 +203,12 @@
                         <span class="text-lg leading-none">+</span> Nuevo Tipo
                     </button>
                 </div>
-
             </div>
 
-            <div class="flex gap-3 pt-4 border-t border-gray-200">
-                <button type="button" onclick="enviarFormulario('crear-paciente', '{% url 'cursos:crear_paciente_ajax' %}')" class="btn-blue flex-1 py-3 rounded font-bold shadow hover:shadow-lg transition">GUARDAR PACIENTE</button>
-                <button type="button" onclick="cerrarModal('modal-crear-paciente')" class="bg-gray-300 text-gray-700 font-bold py-3 px-6 rounded shadow hover:bg-gray-400 transition">Cancelar</button>
+            <div class="pt-4 border-t border-gray-200">
+                <button type="button" onclick="validarYGuardarPaciente('{% url 'cursos:crear_paciente_ajax' %}')" class="btn-blue w-full py-3 rounded font-bold shadow hover:shadow-lg transition">
+                    GUARDAR PACIENTE
+                </button>
             </div>
         </form>
     </div>
@@ -215,6 +292,101 @@
     </div>
 </div>
 
+<div id="modal-error" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[80]">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl w-96 text-center transform transition-all scale-100 border-t-8 border-red-500">
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+            <svg class="h-10 w-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-800 mb-2">¡Atención!</h3>
+        
+        <div id="mensaje-error-texto" class="text-gray-600 text-sm mb-6 text-left bg-red-50 p-4 rounded border border-red-100 max-h-40 overflow-y-auto">
+            </div>
+
+        <button onclick="cerrarModal('modal-error')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full shadow transition w-full">
+            ENTENDIDO
+        </button>
+    </div>
+</div>
+
+<script>
+// === LOGICA PARA EDITAR CURSO ===
+function cargarCursoParaEditar(id) {
+    // 1. YA NO CERRAMOS el modal de lista aquí.
+    // Al dejarlo abierto, el nuevo modal (que tiene fondo oscuro) se montará encima,
+    // creando el efecto de "oscurecer" el modal de atrás.
+    
+    const url = `/cursos/api/obtener/curso/${id}/`; 
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert("Error: " + data.error);
+            } else {
+                // Llenar formulario
+                document.getElementById('edit_curso_id').value = id;
+                document.getElementById('edit_nombrecurso').value = data.nombrecurso;
+                document.getElementById('edit_objetivos').value = data.objetivos;
+
+                // Abrir modal de edición (z-index 60) sobre el de lista (z-index 50)
+                abrirModal('modal-editar-curso');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Error al cargar datos del curso.");
+        });
+}
+
+function guardarCambiosCurso() {
+    const id = document.getElementById('edit_curso_id').value;
+    const form = document.getElementById('form-editar-curso');
+    const formData = new FormData(form);
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Limpiar errores visuales
+    form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
+    form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500', 'bg-red-50'));
+
+    const url = `/cursos/api/guardar/curso/${id}/`;
+
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': csrfToken }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            cerrarModal('modal-editar-curso');
+            cerrarModal('modal-lista-cursos');
+            mostrarPopupExito("Curso actualizado correctamente.");
+        } else {
+            // ERROR: Popup + Inline
+            mostrarPopupError("Tienes datos incompletos.");
+            marcarErroresInline('form-editar-curso', data.error);
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+// Función auxiliar para manejar el popup de éxito
+function mostrarPopupExito(mensaje) {
+    const modal = document.getElementById('modal-exito');
+    document.getElementById('mensaje-exito-texto').innerText = mensaje;
+    
+    // Mostrar modal
+    modal.classList.remove('hidden');
+    
+    // Esperar 1.5 segundos y recargar la página
+    setTimeout(() => {
+        location.reload();
+    }, 1500);
+}
+</script>
+
 <script id="data-pacientes" type="application/json">
 [
     {% for p in mis_pacientes %}
@@ -233,6 +405,52 @@
 </script>
 
 <script>
+function validarYGuardarPaciente(url) {
+    const formId = 'form-crear-paciente';
+    const form = document.getElementById(formId);
+    
+    // Limpiar visualmente antes de validar
+    form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
+    form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500', 'bg-red-50'));
+
+    let inputEdad = document.getElementById('id_edad') || form.querySelector('[name="edad"]');
+
+    // 1. Validación Local (Edad)
+    if (inputEdad) {
+        const edad = parseInt(inputEdad.value);
+        if (isNaN(edad) || edad < 0 || edad > 110) {
+            
+            // Usamos la misma lógica visual: Popup General + Mensaje Inline simulado
+            mostrarPopupError("Tienes datos incompletos.");
+            
+            // Simular estructura de error para usar nuestra funcion
+            // (Esto pinta el mensaje debajo del label Edad)
+            const errorSimulado = { 'edad': ['Rango inválido'] }; 
+            marcarErroresInline(formId, errorSimulado);
+            
+            return; // Detener
+        }
+    }
+
+    const formData = new FormData(form);
+    
+    fetch(url, { method: 'POST', body: formData })
+    .then(r => r.json())
+    .then(data => {
+        if(data.ok) {
+            cerrarModal('modal-crear-paciente');
+            mostrarPopupExito("Paciente creado exitosamente"); 
+        } else {
+            // ERROR DJANGO
+            mostrarPopupError("Tienes datos incompletos.");
+            marcarErroresInline(formId, data.error);
+        }
+    })
+    .catch(error => {
+        mostrarPopupError("Error de conexión.");
+    });
+}
+
 // === LOGICA GLOBAL DE MODALES ===
 function abrirModal(id) { document.getElementById(id).classList.remove('hidden'); }
 function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
@@ -370,63 +588,143 @@ function irConfiguracion(id) {
 
 // === AJAX CREAR (Tu código existente) ===
 function enviarFormulario(formId, url) {
-    const formData = new FormData(document.getElementById('form-' + formId));
-    fetch(url, { method: 'POST', body: formData })
+    const form = document.getElementById('form-' + formId);
+    const formData = new FormData(form);
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Limpiar errores previos antes de enviar
+    form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
+    form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500', 'bg-red-50'));
+
+    fetch(url, { 
+        method: 'POST', 
+        body: formData, 
+        headers: { 'X-CSRFToken': csrfToken }
+    })
     .then(r => r.json()).then(data => {
-        if(data.ok) { alert(data.msg); location.reload(); } 
-        else { alert("Error: " + data.error); }
+        if(data.ok) { 
+            cerrarModal('modal-' + formId);
+            mostrarPopupExito(formId === 'crear-curso' ? 'Curso creado exitosamente' : 'Guardado exitosamente'); 
+            setTimeout(() => location.reload(), 1500);
+        } 
+        else { 
+            // 1. Popup General
+            mostrarPopupError("Tienes datos incompletos.");
+            // 2. Marcar campos en rojo
+            marcarErroresInline('form-' + formId, data.error);
+        }
+    })
+    .catch(error => {
+        mostrarPopupError("Error de conexión.");
     });
 }
 
 // === AJAX TIPO CASO (Tu código existente) ===
 function guardarTipoCaso() {
-    const form = document.getElementById('form-tipo-caso');
+    const formId = 'form-tipo-caso';
+    const form = document.getElementById(formId);
     const formData = new FormData(form);
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Limpiar
+    form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
 
     fetch("{% url 'cursos:crear_tipo_caso_ajax' %}", { 
         method: 'POST', 
-        body: formData 
+        body: formData,
+        headers: { 'X-CSRFToken': csrfToken }
     })
     .then(r => r.json())
     .then(data => {
         if(data.ok) {
-            // 1. Notificación simple
-            alert("Nuevo tipo de caso creado.");
-
-            // 2. Buscar el Select en el formulario de Paciente
-            // Django genera automáticamente el id con el prefijo "id_" + nombre_campo
+            // ... (Tu lógica de agregar al select se mantiene igual) ...
             let select = document.getElementById('id_tipo_caso');
-            
-            // Fallback: Si no lo encuentra por ID, buscar por nombre
-            if (!select) {
-                select = document.querySelector('select[name="tipo_caso"]');
-            }
-
+            if (!select) select = document.querySelector('select[name="tipo_caso"]');
             if (select) {
-                // 3. Crear la nueva opción con los datos recibidos
-                // new Option(texto, valor)
                 const nuevaOpcion = new Option(data.nombre, data.id);
-                
-                // 4. Agregarla al final de la lista
                 select.add(nuevaOpcion);
-                
-                // 5. Dejarla seleccionada automáticamente
                 select.value = data.id;
-            } else {
-                console.warn("No se pudo actualizar la lista visualmente (recarga la página si es necesario).");
             }
-
-            // 6. Limpiar y cerrar el modal de tipo
+            
             form.reset();
             cerrarModal('modal-tipo-caso');
+            mostrarPopupExito("Nuevo tipo de caso creado.");
         } else { 
-            alert("Error al crear: " + (data.error || "Datos inválidos")); 
+            // ERROR
+            mostrarPopupError("Tienes datos incompletos.");
+            marcarErroresInline(formId, data.error);
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert("Error de conexión con el servidor.");
+        mostrarPopupError("Error de conexión.");
     });
+}
+
+function mostrarPopupError(mensajeCustom) {
+    const contenedor = document.getElementById('mensaje-error-texto');
+    // Si no enviamos mensaje, usamos el default
+    const texto = mensajeCustom || "Tienes datos incompletos.";
+    
+    contenedor.innerHTML = `<p class="font-bold text-center text-gray-700 text-lg">${texto}</p>`;
+    document.getElementById('modal-error').classList.remove('hidden');
+}
+
+// 2. ERRORES INLINE (Pone "¡Falta completar!" debajo del label)
+function marcarErroresInline(formId, errorData) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+
+    // A. Limpiar errores previos (borrar los mensajes rojos viejos)
+    form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
+    form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500', 'bg-red-50'));
+
+    // B. Parsear errores
+    try {
+        if (typeof errorData === 'string') errorData = JSON.parse(errorData);
+        
+        // C. Recorrer campos con error
+        if (typeof errorData === 'object' && errorData !== null) {
+            for (const campo in errorData) {
+                if (campo === '__all__') continue;
+
+                // 1. Buscar el input
+                const input = form.querySelector(`[name="${campo}"]`);
+                
+                if (input) {
+                    // Marcar el borde del input en rojo
+                    input.classList.add('border-red-500', 'bg-red-50');
+
+                    // 2. Buscar el Label asociado para poner el texto debajo
+                    let label = null;
+                    
+                    // Intento 1: Label por atributo 'for'
+                    if (input.id) {
+                        label = form.querySelector(`label[for="${input.id}"]`);
+                    }
+                    
+                    // Intento 2: Label cercano (hermano anterior o padre)
+                    if (!label) {
+                        // Buscar en el contenedor padre (para tus formularios manuales)
+                        if (input.parentElement) {
+                            label = input.parentElement.querySelector('label');
+                        }
+                    }
+
+                    // 3. Insertar mensaje "¡Falta completar!"
+                    if (label) {
+                        const msg = document.createElement('div');
+                        msg.className = 'error-text-inline text-red-600 text-xs font-bold mt-1 mb-1 animate-pulse';
+                        msg.innerText = '⚠️ ¡Falta completar!';
+                        
+                        // Insertar JUSTO DESPUÉS del label (antes del input)
+                        label.after(msg);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Error mostrando inlines", e);
+    }
 }
 </script>
 {% endblock %}

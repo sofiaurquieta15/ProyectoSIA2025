@@ -454,6 +454,229 @@
     </div>
 </div>
 
+<div id="modal-exito" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[70]">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl w-80 text-center transform transition-all scale-100">
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+            <svg class="h-10 w-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-800 mb-2">¡Listo!</h3>
+        <p class="text-gray-500" id="mensaje-exito-texto">Guardado correctamente.</p>
+    </div>
+</div>
+
+<div id="modal-error" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-[80]">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl w-96 text-center transform transition-all scale-100 border-t-8 border-red-500">
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+            <svg class="h-10 w-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-800 mb-2">¡Atención!</h3>
+        <div id="mensaje-error-texto" class="text-gray-600 text-sm mb-6 font-medium">
+            </div>
+        <button onclick="document.getElementById('modal-error').classList.add('hidden')" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full shadow transition w-full">
+            ENTENDIDO
+        </button>
+    </div>
+</div>
+
+<script>
+// === FUNCIONES DE POPUP Y VALIDACIÓN ===
+function mostrarPopupExito(msg) {
+    document.getElementById('mensaje-exito-texto').innerText = msg;
+    document.getElementById('modal-exito').classList.remove('hidden');
+    // Recargar la página después de 1.5 segundos
+    setTimeout(() => location.reload(), 1500);
+}
+
+function mostrarPopupError(msg) {
+    document.getElementById('mensaje-error-texto').innerHTML = msg;
+    document.getElementById('modal-error').classList.remove('hidden');
+}
+
+function limpiarErrores(form) {
+    // Quita los bordes rojos anteriores
+    form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500', 'bg-red-50'));
+}
+
+function marcarErrorInput(input) {
+    if(input) {
+        input.classList.add('border-red-500', 'bg-red-50');
+        input.focus(); // Lleva al usuario al error
+    }
+}
+
+// === NUEVA FUNCIÓN GUARDAR PREGUNTA (CON VALIDACIÓN) ===
+function guardarPregunta(event) {
+    event.preventDefault(); 
+    const form = document.getElementById('form-pregunta');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Limpiar errores visuales previos
+    limpiarErrores(form);
+
+    // --- 1. Obtener Inputs ---
+    const titulo = document.getElementById('input-titulo');
+    const op1 = form.querySelector('[name="respuesta_1"]');
+    const op2 = form.querySelector('[name="respuesta_2"]');
+    const op3 = form.querySelector('[name="respuesta_3"]');
+    const op4 = form.querySelector('[name="respuesta_4"]');
+    const correcta = form.querySelector('input[name="correcta_index"]:checked');
+    const inputsOpciones = [op1, op2, op3, op4];
+    
+    // --- 2. Validaciones ---
+
+    // A. Título Vacío
+    if (!titulo.value.trim()) {
+        mostrarPopupError("Falta el enunciado de la pregunta.");
+        marcarErrorInput(titulo);
+        return;
+    }
+
+    // B. Opciones Vacías
+    for (let i = 0; i < inputsOpciones.length; i++) {
+        if (!inputsOpciones[i].value.trim()) {
+            mostrarPopupError(`La <b>Opción ${i + 1}</b> está vacía.`);
+            marcarErrorInput(inputsOpciones[i]);
+            return;
+        }
+    }
+
+    // C. Duplicados
+    const textos = inputsOpciones.map(inp => inp.value.trim().toLowerCase());
+    const unicos = new Set(textos);
+    if (unicos.size !== textos.length) {
+        mostrarPopupError("Hay opciones repetidas.<br>El contenido de las alternativas debe ser distinto.");
+        const vistos = {};
+        inputsOpciones.forEach(inp => {
+            const txt = inp.value.trim().toLowerCase();
+            if (vistos[txt]) {
+                marcarErrorInput(inp);        
+                marcarErrorInput(vistos[txt]); 
+            } else {
+                vistos[txt] = inp;
+            }
+        });
+        return;
+    }
+
+    // D. Respuesta Correcta
+    if (!correcta) {
+        mostrarPopupError("Debes marcar cuál es la alternativa correcta.");
+        return;
+    }
+
+    // --- 3. Envío al Servidor ---
+    const formData = new FormData(form);
+
+    fetch("{% url 'cursos:guardar_pregunta_etapa' %}", {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': csrfToken }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => { throw new Error(text) });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.ok) {
+            // CORRECCIÓN: Eliminamos la línea que buscaba 'modal-pregunta'
+            // Solo mostramos éxito y dejamos que la página se recargue
+            mostrarPopupExito("Pregunta guardada correctamente.");
+            
+            // Opcional: Limpiamos el formulario visualmente mientras se recarga
+            form.reset();
+        } else {
+            mostrarPopupError("Error del servidor: " + (data.error || "Desconocido"));
+        }
+    })
+    .catch(err => {
+        console.error("Error:", err);
+        let mensaje = err.message || "Desconocido";
+        if (mensaje.includes("<!DOCTYPE html>")) mensaje = "Error interno (500). Revisa tu consola.";
+        mostrarPopupError("Falló el guardado: " + mensaje.substring(0, 100));
+    });
+}
+
+function guardarExploracion(event) {
+    event.preventDefault(); // Evita recarga inmediata
+    
+    const form = event.target; // Obtiene el formulario que disparó el evento
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Limpiar errores visuales si tuvieras lógica de validación inline (opcional)
+    // limpiarErrores(form); 
+
+    fetch("{% url 'cursos:guardar_exploracion_etapa' %}", {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-CSRFToken': csrfToken }
+    })
+    .then(response => {
+        // Verificación robusta de errores HTTP (500, 404, etc.)
+        if (!response.ok) {
+            return response.text().then(text => { throw new Error(text) });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.ok) {
+            // Ocultar el formulario si estaba en modo edición "oculto" (caso límite alcanzado)
+            const contenedorOculto = document.getElementById('contenedor-form-oculto');
+            if(contenedorOculto) contenedorOculto.style.display = 'none';
+
+            // ¡ÉXITO! Muestra el check verde y recarga
+            mostrarPopupExito("Exploración guardada correctamente.");
+        } else {
+            mostrarPopupError("Error: " + (data.error || "No se pudo guardar."));
+        }
+    })
+    .catch(err => {
+        console.error("Error:", err);
+        let mensaje = err.message || "Desconocido";
+        if (mensaje.includes("<!DOCTYPE html>")) mensaje = "Error interno del servidor (500).";
+        mostrarPopupError("Falló el guardado: " + mensaje.substring(0, 100));
+    });
+}
+
+function guardarDiagnostico(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch("{% url 'cursos:guardar_diagnostico_etapa' %}", {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-CSRFToken': csrfToken }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => { throw new Error(text) });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.ok) {
+            // ¡ÉXITO! Muestra el check verde y recarga
+            mostrarPopupExito("Diagnóstico guardado correctamente.");
+        } else {
+            mostrarPopupError("Error: " + (data.error || "No se pudo guardar."));
+        }
+    })
+    .catch(err => {
+        console.error("Error:", err);
+        let mensaje = err.message || "Desconocido";
+        if (mensaje.includes("<!DOCTYPE html>")) mensaje = "Error interno del servidor (500).";
+        mostrarPopupError("Falló el guardado: " + mensaje.substring(0, 100));
+    });
+}
+</script>
+
 <script>
     let itemAEliminar = { tipo: '', id: 0 };
 
@@ -538,10 +761,6 @@
             } else { alert("Error: " + data.error); cerrarModalEliminar(); }
         }).catch(err => { alert("Error de conexión"); cerrarModalEliminar(); });
     }
-
-    function guardarPregunta(e) { e.preventDefault(); fetch("{% url 'cursos:guardar_pregunta_etapa' %}", { method: 'POST', body: new FormData(e.target) }).then(r => r.json()).then(d => { if(d.ok) location.reload(); else alert(d.error); }); }
-    function guardarExploracion(e) { e.preventDefault(); fetch("{% url 'cursos:guardar_exploracion_etapa' %}", { method: 'POST', body: new FormData(e.target) }).then(r => r.json()).then(d => { if(d.ok) location.reload(); else alert(d.error); }); }
-    function guardarDiagnostico(e) { e.preventDefault(); fetch("{% url 'cursos:guardar_diagnostico_etapa' %}", { method: 'POST', body: new FormData(e.target) }).then(r => r.json()).then(d => { if(d.ok) { alert('Guardado.'); location.reload(); } else alert(d.error); }); }
 
     function editarPregunta(id) {
         fetch(`/cursos/api/obtener-pregunta/${id}/`).then(r => r.json()).then(data => {

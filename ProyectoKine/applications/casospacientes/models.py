@@ -111,18 +111,18 @@ class Pregunta(models.Model):
         return url
     
 
-    #def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs):
         # Convertir URL tipo watch?v=
-    #    if "watch?v=" in self.urlvideo:
-    #        video_id = self.urlvideo.split("watch?v=")[1].split("&")[0]
-    #        self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
+        if "watch?v=" in self.urlvideo:
+            video_id = self.urlvideo.split("watch?v=")[1].split("&")[0]
+            self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
 
         # Convertir URL tipo youtu.be
-    #    elif "youtu.be/" in self.urlvideo:
-    #        video_id = self.urlvideo.split("youtu.be/")[1].split("?")[0]
-    #        self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
+        elif "youtu.be/" in self.urlvideo:
+            video_id = self.urlvideo.split("youtu.be/")[1].split("?")[0]
+            self.urlvideo = f"https://www.youtube.com/embed/{video_id}"
 
-    #    super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         # CAMBIO AQUÍ: Ahora muestra [NOMBRE PACIENTE] Título de pregunta
