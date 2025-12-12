@@ -339,7 +339,6 @@ function toggleNotificaciones() {
 </script>
 
 <script>
-    // Lógica del Modal
     function abrirModal(id) { 
         const modal = document.getElementById(id);
         const content = modal.querySelector('#modalContent');
@@ -374,14 +373,37 @@ function toggleNotificaciones() {
         input.type = input.type === "password" ? "text" : "password";
     }
 
+    // === LÓGICA DE APERTURA AUTOMÁTICA MEJORADA ===
     window.onload = function() {
         {% if messages %}
-            abrirModal('modal-perfil-estudiante');
+            // Variables de control (Por defecto NO abrir)
+            let abrirPerfil = false;
+            let mostrarPestañaPass = false;
+
             {% for message in messages %}
-                {% if 'error_pass_actual_cambio' in message.tags or 'error_pass_match' in message.tags %}
-                    mostrarCambioPass();
-                {% endif %}
+                // 1. Detectar si el mensaje es realmente sobre el perfil (Evita abrir por "Cuenta creada")
+                var textoMsg = "{{ message|escapejs }}";
+                var tagsMsg = "{{ message.tags }}";
+
+                if (textoMsg.includes("Datos actualizados") || 
+                    textoMsg.includes("Contraseña cambiada") || 
+                    tagsMsg.includes("error_pass")) {
+                    abrirPerfil = true;
+                }
+
+                // 2. Detectar si hay que mostrar la pestaña de contraseña por un error específico
+                if (tagsMsg.includes("error_pass_actual_cambio") || tagsMsg.includes("error_pass_match")) {
+                    mostrarPestañaPass = true;
+                }
             {% endfor %}
+
+            // Solo abrir si se cumplió alguna condición específica
+            if (abrirPerfil) {
+                abrirModal('modal-perfil-estudiante');
+                if (mostrarPestañaPass) {
+                    mostrarCambioPass();
+                }
+            }
         {% endif %}
     };
 </script>
