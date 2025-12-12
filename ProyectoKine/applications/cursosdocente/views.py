@@ -353,7 +353,7 @@ def RevisionesDocenteView(request):
         solicitudes = solicitudes.filter(estado=estado)
     if estudiante_id:
         solicitudes = solicitudes.filter(estudiante_id=estudiante_id)
-)
+
     solicitudes_data = []
     for sol in solicitudes:
         respuesta_original = "No se encontró el registro."
@@ -384,7 +384,7 @@ def RevisionesDocenteView(request):
             'obj': sol,
             'respuesta_original': respuesta_original
         })
-)
+        
     if request.method == 'POST':
         solicitud_id = request.POST.get('solicitud_id')
         respuesta_texto = request.POST.get('respuesta_texto')
