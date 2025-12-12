@@ -33,9 +33,8 @@
 {% block content %}
 
 <style>
-    /* Borde azul personalizado para los bloques */
     .border-blue-custom {
-        border: 4px solid #1e3a8a; /* Azul oscuro institucional */
+        border: 4px solid #1e3a8a;
     }
 </style>
 
@@ -133,7 +132,7 @@
 </div>
 
 <script>
-/* ==========================
+/* =========================
    VARIABLES BÁSICAS
 ========================== */
 const estudiante_id = "{{ request.session.estudiante_id }}";
@@ -153,7 +152,6 @@ const textarea = document.getElementById("respuesta-exp");
 const btnGuardar = document.getElementById("btn-guardar-exp");
 const btnFinalizar = document.getElementById("btn-finalizar");
 
-/* MODAL UNIFICADO */
 function mostrarModal(titulo, htmlMensaje, esExito) {
     const modal = document.getElementById("modal-feedback");
     const txtContainer = document.getElementById("feedback-text");
@@ -161,7 +159,6 @@ function mostrarModal(titulo, htmlMensaje, esExito) {
     document.getElementById("feedback-title").innerText = titulo;
     txtContainer.innerHTML = htmlMensaje;
 
-    // Alinear texto según sea éxito o error
     if (!esExito) {
         document.getElementById("feedback-title").className = "text-2xl font-bold mb-4 text-red-700";
         txtContainer.classList.add("text-left");
@@ -220,7 +217,6 @@ expButtons.forEach(btn => {
             guardarTemporal();
         }
 
-        // Estilos de botones (Regreso al estilo gris/azul original)
         expButtons.forEach(b => {
             b.classList.remove("bg-blue-900","text-white");
             b.classList.add("bg-gray-200", "text-gray-700");
@@ -228,7 +224,6 @@ expButtons.forEach(btn => {
         this.classList.remove("bg-gray-200", "text-gray-700");
         this.classList.add("bg-blue-900","text-white");
 
-        // Actualizar datos
         expActualId = this.dataset.expId;
         document.getElementById("video-exploracion").src = this.dataset.video;
         document.getElementById("texto-instruccion").innerText = this.dataset.instruccion;

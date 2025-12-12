@@ -20,17 +20,11 @@ class Enrolamiento(models.Model):
         ordering = ['fecha_inscripcion']
 
 class Avance(models.Model):
-    # Relacionado con el estudiante
     id_estudiante = models.ForeignKey(Estudiante, on_delete=models.CASCADE)
-    # Relacionado con el curso
     id_curso = models.ForeignKey(Curso, on_delete=models.CASCADE)
-    # Avance del estudiante en el curso (porcentaje)
     porcentajeavance = models.DecimalField("Porcentaje de Avance", max_digits=5, decimal_places=2)
-    # Fecha de la última actualización de avance
     fecha_actualizacion = models.DateTimeField("Fecha de Actualización")
-    # Indica si el curso está completado o no
     completado = models.BooleanField("Completado", default=False)
-    # Relacionado con las respuestas seleccionadas por el estudiante (modelo Registro)
     respuestas = models.ManyToManyField(Registro, related_name='avances', blank=True)
 
     def __str__(self):
@@ -51,16 +45,12 @@ class SolicitudRevision(models.Model):
     curso = models.ForeignKey(Curso, on_delete=models.CASCADE)
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
     
-    # Etapa que se quiere revisar (2 o 3)
     etapa_solicitud = models.IntegerField("Etapa a Revisar", choices=TIPO_ETAPA)
-    
-    # Opcional: Si es etapa 2, puede especificar qué exploración. Si es etapa 3, esto queda null.
     exploracion_especifica = models.ForeignKey(Exploracion, on_delete=models.CASCADE, null=True, blank=True)
 
     motivo = models.TextField("Motivo de revisión")
     fecha_solicitud = models.DateTimeField(auto_now_add=True)
     
-    # Campos para la respuesta del docente (se llenarán después)
     estado = models.CharField(max_length=20, choices=ESTADO_SOLICITUD, default='PENDIENTE')
     respuesta_docente = models.TextField("Retroalimentación del Docente", null=True, blank=True)
     fecha_respuesta = models.DateTimeField(null=True, blank=True)
@@ -75,8 +65,8 @@ class SolicitudRevision(models.Model):
 
 class NotificacionVista(models.Model):
     estudiante = models.ForeignKey(Estudiante, on_delete=models.CASCADE)
-    tipo = models.CharField(max_length=20) # 'SOLICITUD' o 'PACIENTE'
-    referencia_id = models.IntegerField() # El ID de la solicitud o del paciente
+    tipo = models.CharField(max_length=20) 
+    referencia_id = models.IntegerField() 
     fecha_vista = models.DateTimeField(auto_now_add=True)
 
     class Meta:

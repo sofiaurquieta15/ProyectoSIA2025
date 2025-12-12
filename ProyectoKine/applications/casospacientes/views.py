@@ -252,21 +252,17 @@ class VistaEtapa3View(TemplateView):
         id_paciente = kwargs["id_paciente"]
         numetapa = kwargs["numetapa"]
 
-        # Obtener etapa 3
         etapa = get_object_or_404(
             Etapa,
             id_paciente=id_paciente,
             numetapa=numetapa
         )
 
-        # Obtener la única pregunta asociada a esta etapa
         pregunta = Pregunta.objects.filter(id_etapa=etapa).first()
 
-        # Estudiante actual
         estudiante_id = self.request.session.get("estudiante_id")
         estudiante = Estudiante.objects.get(id=estudiante_id)
 
-        # Buscar respuesta del estudiante (si existe)
         registro = Registro.objects.filter(
             id_pregunta=pregunta,
             id_estudiante=estudiante
@@ -299,7 +295,6 @@ def validar_respuesta_ajax(request):
     if request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
 
-    # 1. Leer JSON
     try:
         data = json.loads(request.body)
         estudiante_id = data.get("estudiante_id")
@@ -314,7 +309,6 @@ def validar_respuesta_ajax(request):
     except Exception as e:
         return JsonResponse({"error": "JSON inválido"}, status=400)
 
-    # 2. Validar estudiante
     if not estudiante_id:
         return JsonResponse({"error": "Falta estudiante_id"}, status=400)
     
@@ -333,7 +327,6 @@ def validar_respuesta_ajax(request):
         except Pregunta.DoesNotExist:
             return JsonResponse({"error": "Pregunta no encontrada"}, status=404)
 
-        # Guardar respuesta (SIN calificacion_obtenida)
         registro, creado = Registro.objects.update_or_create(
             id_pregunta=pregunta,
             id_estudiante=estudiante,
@@ -376,7 +369,6 @@ def validar_respuesta_ajax(request):
                 opcion = OpcionMultiple.objects.get(id=op_id)
                 hay_respuestas_validas = True
                 
-                # Obtenemos o creamos registro para contar intentos (aunque no mostremos puntos)
                 registro, created = Registro.objects.get_or_create(
                     id_pregunta=pregunta,
                     id_estudiante=estudiante,
@@ -384,7 +376,6 @@ def validar_respuesta_ajax(request):
                 )
 
                 if not opcion.is_correct:
-                    # Si se equivoca: Aumentamos intentos
                     registro.intentos_fallidos += 1
                     registro.save()
 
@@ -396,14 +387,12 @@ def validar_respuesta_ajax(request):
                         "retro": opcion.retroalimentacion or "Incorrecto. Intenta de nuevo."
                     })
                 else:
-                    # Si acierta: Guardamos la opción seleccionada
                     registro.opcion_seleccionada = opcion
-                    registro.save() # Guardamos sin calcular puntos ni calificación
+                    registro.save()
 
                     aciertos_info.append({
                         "pregunta_id": registro.id_pregunta.id,
                         "retro": opcion.retroalimentacion or "¡Correcto!",
-                        # Ya no enviamos "puntos"
                     })
                     
                     etapa_actual = pregunta.id_etapa

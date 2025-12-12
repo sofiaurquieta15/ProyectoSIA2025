@@ -17,7 +17,7 @@ class Curso(models.Model):
 
 class NotificacionDocenteVista(models.Model):
     docente = models.ForeignKey(Docente, on_delete=models.CASCADE)
-    solicitud_id = models.IntegerField() # Guardamos el ID de la solicitud vista
+    solicitud_id = models.IntegerField()
     fecha_vista = models.DateTimeField(auto_now_add=True)
 
     class Meta:

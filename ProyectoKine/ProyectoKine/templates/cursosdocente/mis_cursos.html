@@ -21,7 +21,6 @@
     .text-blue-custom { color: #1e3a8a; }
     .bg-blue-custom { background-color: #1e3a8a; }
     
-    /* Estilo para la tarjeta de selección de curso */
     .curso-card {
         transition: all 0.2s ease-in-out;
         cursor: pointer;
@@ -31,17 +30,16 @@
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     }
     .curso-card.active {
-        background-color: #1e3a8a; /* Azul */
+        background-color: #1e3a8a;
         color: white;
         border-color: #1e3a8a;
     }
     .curso-card.inactive {
         background-color: white;
-        color: #1f2937; /* Gris oscuro */
-        border-color: #e5e7eb; /* Gris claro */
+        color: #1f2937; 
+        border-color: #e5e7eb; 
     }
     
-    /* Pestañas Dashboard */
     .tab-paciente.active {
         background-color: #1e3a8a;
         color: white;
@@ -355,18 +353,16 @@ function abrirModalEnrolar() {
     document.getElementById('input-buscar-estudiante').value = "";
     document.getElementById('modal-enrolar').classList.remove('hidden');
     
-    // Cargar estudiantes inmediatamente al abrir
     buscarEstudiantes();
 }
 
-// 2. Función de Búsqueda (Conectada al Backend)
+// 2. Función de Búsqueda
 let timeoutBusqueda = null;
 
 function buscarEstudiantes() {
     const termino = document.getElementById('input-buscar-estudiante').value;
     const contenedor = document.getElementById('lista-estudiantes-resultados');
 
-    // Debounce para no saturar el servidor si escriben rápido
     clearTimeout(timeoutBusqueda);
     
     timeoutBusqueda = setTimeout(() => {
@@ -385,7 +381,7 @@ function buscarEstudiantes() {
                 console.error(err);
                 contenedor.innerHTML = '<p class="text-center text-red-500 py-4">Error de conexión</p>';
             });
-    }, 300); // Espera 300ms después de dejar de escribir
+    }, 300);
 }
 
 // 3. Renderizar la lista
@@ -416,11 +412,10 @@ function renderizarListaEstudiantes(estudiantes) {
     });
 }
 
-// 4. Acción de Enrolar (Reutiliza tu lógica existente en el backend)
+// 4. Acción de Enrolar
 function seleccionarYEnrolar(correo) {
     const msg = document.getElementById('msg-enrolar');
     
-    // 1. Mostrar mensaje de carga
     msg.innerText = "Procesando enrolamiento...";
     msg.className = "mt-4 text-center text-sm font-bold text-blue-600";
 
@@ -435,22 +430,17 @@ function seleccionarYEnrolar(correo) {
     .then(r => r.json())
     .then(data => {
         if(data.ok) {
-            // 2. Mostrar éxito y actualizar la lista
+
             msg.innerText = `¡${correo} enrolado correctamente!`;
             msg.className = "mt-4 text-center text-sm font-bold text-green-600";
             
-            // *** ESTA LLAMADA RECARGA LA LISTA Y QUITA AL ESTUDIANTE RECIÉN AGREGADO ***
             buscarEstudiantes(); 
-            
-            // El popup NO se cerrará porque no hay ninguna línea de código que lo haga.
 
         } else {
-            // 3. Mostrar error
             msg.innerText = data.error;
             msg.className = "mt-4 text-center text-sm font-bold text-red-600";
         }
         
-        // Limpiar el mensaje después de 3 segundos para que no interfiera en la siguiente acción
         setTimeout(() => msg.innerText = "", 3000);
     })
     .catch(e => {
@@ -463,7 +453,6 @@ function seleccionarYEnrolar(correo) {
 // === DESENROLAR ===
 let correoADesenrolar = "";
 
-// 1. Función que se llama al hacer click en la X
 function desenrolarEstudiante(correo) {
     correoADesenrolar = correo;
     // Actualizamos el texto del modal
@@ -472,12 +461,9 @@ function desenrolarEstudiante(correo) {
     document.getElementById('modal-desenrolar').classList.remove('hidden');
 }
 
-// 2. Función que se llama al confirmar en el modal
 function confirmarDesenrolar() {
-    // Ocultar modal
     document.getElementById('modal-desenrolar').classList.add('hidden');
 
-    // Hacer la petición real
     fetch("{% url 'cursos:desenrolar_estudiante' %}", {
         method: "POST",
         headers: { "X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/x-www-form-urlencoded" },
@@ -486,7 +472,6 @@ function confirmarDesenrolar() {
     .then(r => r.json())
     .then(data => {
         if(data.ok) {
-            // Usamos un alert simple para notificar éxito rápido, o puedes hacer un reload directo
             location.reload();
         } else {
             alert("Error: " + data.error);
@@ -566,7 +551,6 @@ function verDetalleEstudiante(estudianteId, etapaId) {
         const modal = document.getElementById('modal-detalle-intentos');
         const tbody = document.getElementById('tabla-detalle-body');
         
-        // Limpiamos la tabla antes de cargar
         tbody.innerHTML = '<tr><td colspan="2" class="text-center py-4 text-gray-500">Cargando datos...</td></tr>';
         modal.classList.remove('hidden');
 
@@ -579,7 +563,7 @@ function verDetalleEstudiante(estudianteId, etapaId) {
 
                 if (data.ok && data.detalles.length > 0) {
                     data.detalles.forEach(item => {
-                        // Determinamos color si hay muchos errores
+
                         let colorError = item.errores > 0 ? "text-red-600" : "text-gray-400";
                         
                         let row = `

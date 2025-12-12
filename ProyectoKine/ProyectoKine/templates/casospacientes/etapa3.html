@@ -33,9 +33,8 @@
 {% block content %}
 
 <style>
-    /* COLOR UNIFICADO CON AVANCES */
     .border-blue-custom {
-        border: 4px solid #1e3a8a; /* Azul oscuro */
+        border: 4px solid #1e3a8a; 
     }
     .btn-blue-custom {
         background-color: #1e3a8a;
@@ -132,7 +131,6 @@
 let estudiante_id = "{{ request.session.estudiante_id }}";
 let pregunta_id = "{{ pregunta.id }}";
 
-// Variable para controlar qué hace el botón del modal
 let modalRedirect = false;
 
 // MODAL
@@ -143,14 +141,12 @@ function abrirModal(t, msg, redirect = false){
     tituloNode.innerText = t;
     textoNode.innerHTML = msg;
 
-    // Colores según éxito o error
     if (redirect) {
         tituloNode.className = "text-2xl font-bold mb-4 text-green-700";
     } else {
         tituloNode.className = "text-2xl font-bold mb-4 text-red-700";
     }
 
-    // Guardamos si debe redirigir o no
     modalRedirect = redirect;
 
     document.getElementById("modal").classList.remove("hidden");
@@ -160,7 +156,6 @@ document.getElementById("btn-modal-ok")?.addEventListener("click", () => {
 
     document.getElementById("modal").classList.add("hidden");
 
-    // Si el modal fue invocado con redirect = true → ir a detalle
     if(modalRedirect){
         window.location.href = "{% url 'casos:detalle_paciente' paciente.id %}";
     }
@@ -179,18 +174,15 @@ document.getElementById("btn-enviar")?.addEventListener("click", function(){
     fetch("{% url 'casos:validar_respuesta' %}", {
         method: "POST",
         headers: {
-            "Content-Type": "application/json", // <--- IMPORTANTE: Avisamos que enviamos JSON
+            "Content-Type": "application/json",
             "X-CSRFToken": "{{ csrf_token }}"
         },
-        // Enviamos el cuerpo como JSON string
         body: JSON.stringify({
             estudiante_id: estudiante_id,
-            // En etapa 3 enviamos una "lista" con un solo elemento para reutilizar la lógica del backend
             respuestas: [{
                 pregunta_id: pregunta_id,
                 texto_respuesta: texto
             }],
-            // También enviamos texto_respuesta suelto por si tu backend lo busca así
             texto_respuesta: texto, 
             pregunta_id: pregunta_id 
         })
@@ -209,7 +201,7 @@ document.getElementById("btn-enviar")?.addEventListener("click", function(){
             abrirModal(
                 "¡Excelente!",
                 msgExito,
-                true //redirige CUANDO hay éxito
+                true
             );
         } else {
             abrirModal("Error", data.error || "Ocurrió un error al guardar.", false);

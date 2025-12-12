@@ -166,14 +166,11 @@
         else { selectElement.classList.remove('select-active'); }
     };
 
-    // === LÓGICA DE MOVIMIENTO DE BOTONES (MODIFICADA) ===
     function moverBotonEstado() {
-        // Solo cambiamos el texto del botón Añadir, ya NO movemos el verde.
         const btnAdd = document.getElementById('btn-add-main');
         if (btnAdd) btnAdd.innerText = "AÑADIR OTRA CONSULTA";
     }
 
-    // === RESTAURAR BOTONES SI NO HAY TARJETAS (MODIFICADA) ===
     function verificarYRestaurarBotones() {
         const container = document.getElementById('contenedor-consultas');
         if (container && container.children.length === 0) {
@@ -182,7 +179,6 @@
         }
     }
 
-    // === CREAR TARJETA ===
     window.crearTarjeta = function(tipoEtapa) {
         if (document.querySelector(`.open-card-${tipoEtapa}`)) {
             cerrarModal();
@@ -192,7 +188,7 @@
         }
 
         cerrarModal();
-        moverBotonEstado(); // Cambia texto a "AÑADIR OTRA"
+        moverBotonEstado();
 
         const container = document.getElementById('contenedor-consultas');
         if (!container) return;

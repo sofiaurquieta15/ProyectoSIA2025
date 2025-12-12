@@ -23,10 +23,9 @@
     .fade-in { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     
-    /* Estilos extra para las notificaciones (Bootstrap icons support) */
     .notification-card {
         background-color: white;
-        border-radius: 0.75rem; /* rounded-xl */
+        border-radius: 0.75rem; 
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
         overflow: hidden;
     }
@@ -41,10 +40,10 @@
         border-bottom: none;
     }
     .notif-unread {
-        background-color: #eff6ff; /* bg-blue-50 */
+        background-color: #eff6ff; 
     }
     .notif-unread:hover {
-        background-color: #dbeafe; /* bg-blue-100 */
+        background-color: #dbeafe; 
     }
 </style>
 
@@ -314,7 +313,6 @@
 
 <script>
 function marcarLeido(tipo, id) {
-    // Enviamos la petición al servidor sin detener la navegación
     fetch('/cursosestudiante/api/notificacion-vista/', {
         method: 'POST',
         headers: {
@@ -330,10 +328,10 @@ function toggleNotificaciones() {
                 
     if (body.classList.contains('hidden')) {
         body.classList.remove('hidden');
-        chevron.classList.remove('-rotate-90'); // Flecha abajo
+        chevron.classList.remove('-rotate-90');
     } else {
         body.classList.add('hidden');
-        chevron.classList.add('-rotate-90'); // Flecha lado (cerrado)
+        chevron.classList.add('-rotate-90');
     }
 }
 </script>
@@ -373,15 +371,12 @@ function toggleNotificaciones() {
         input.type = input.type === "password" ? "text" : "password";
     }
 
-    // === LÓGICA DE APERTURA AUTOMÁTICA MEJORADA ===
     window.onload = function() {
         {% if messages %}
-            // Variables de control (Por defecto NO abrir)
             let abrirPerfil = false;
             let mostrarPestañaPass = false;
 
             {% for message in messages %}
-                // 1. Detectar si el mensaje es realmente sobre el perfil (Evita abrir por "Cuenta creada")
                 var textoMsg = "{{ message|escapejs }}";
                 var tagsMsg = "{{ message.tags }}";
 
@@ -391,13 +386,11 @@ function toggleNotificaciones() {
                     abrirPerfil = true;
                 }
 
-                // 2. Detectar si hay que mostrar la pestaña de contraseña por un error específico
                 if (tagsMsg.includes("error_pass_actual_cambio") || tagsMsg.includes("error_pass_match")) {
                     mostrarPestañaPass = true;
                 }
             {% endfor %}
 
-            // Solo abrir si se cumplió alguna condición específica
             if (abrirPerfil) {
                 abrirModal('modal-perfil-estudiante');
                 if (mostrarPestañaPass) {

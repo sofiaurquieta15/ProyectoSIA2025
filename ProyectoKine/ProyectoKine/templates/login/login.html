@@ -93,17 +93,14 @@
 
 <script>
     const toggleBtn = document.getElementById('togglePassword');
-    // Buscamos el input de password (generalmente Django le pone id_password, pero buscamos por tipo para asegurar)
     const passwordInput = document.querySelector('input[name="password"]');
     const eyeIcon = document.getElementById('eyeIcon');
     const eyeSlashIcon = document.getElementById('eyeSlashIcon');
 
     toggleBtn.addEventListener('click', function () {
-        // Alternar el tipo de atributo
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
-        
-        // Alternar los íconos
+
         eyeIcon.classList.toggle('hidden');
         eyeSlashIcon.classList.toggle('hidden');
     });

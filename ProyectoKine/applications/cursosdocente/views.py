@@ -29,15 +29,11 @@ def MenuDocenteView(request):
         docente = Docente.objects.get(id=usuario_id)
     except Docente.DoesNotExist: return redirect('login:login_docente')
 
-    # 1. Obtener IDs de solicitudes que este docente YA VIO
     vistas_ids = set(NotificacionDocenteVista.objects.filter(docente=docente).values_list('solicitud_id', flat=True))
 
-    # 2. Buscar las últimas solicitudes recibidas (Historial completo)
-    # Filtramos por los cursos de este docente
     requests_qs = SolicitudRevision.objects.filter(
         curso__id_docente=docente
     ).select_related('estudiante', 'paciente', 'curso').order_by('-fecha_solicitud')[:10] 
-    # Traemos 10 por si acaso, luego cortamos a 5
 
     notificaciones = []
     for req in requests_qs:
@@ -53,17 +49,13 @@ def MenuDocenteView(request):
             'leido': es_leido,
             'etapa_num': req.etapa_solicitud,
             
-            # Datos para construir la URL
             'url_params': f"curso={req.curso.id}&estudiante={req.estudiante.id}&paciente={req.paciente.id}&etapa={req.etapa_solicitud}"
         })
 
-    # 3. Ordenar: Primero las NO leídas, luego por fecha
     notificaciones.sort(key=lambda x: x['leido']) 
     
-    # 4. Dejar solo las últimas 5 para el menú
     notificaciones = notificaciones[:5]
 
-    # Contar no leídas reales
     count_no_leidas = sum(1 for n in notificaciones if not n['leido'])
 
     return render(request, 'cursosdocente/menudocente.html', {
@@ -131,15 +123,7 @@ def GestionCursosDocenteView(request):
         total_estudiantes = enrolamientos.count()
         curso_stats['total_estudiantes'] = total_estudiantes
 
-        # --- CAMBIO IMPORTANTE AQUÍ ---
-        # Filtramos solo los pacientes VISIBLES (visible=True).
-        # Esto hace que:
-        # 1. Los pacientes ocultos no aparezcan en la tabla.
-        # 2. El cálculo del 100% solo tome en cuenta los casos publicados.
         pacientes_curso = Paciente.objects.filter(id_curso=curso_activo, visible=True)
-        # ------------------------------
-        
-        # --- A. PROCESAR DATOS DE CADA ESTUDIANTE ---
         for enrol in enrolamientos:
             est = enrol.estudiante
             
@@ -261,26 +245,19 @@ def enrolar_estudiante(request):
 
 @csrf_exempt
 def buscar_estudiantes_disponibles(request):
-    """
-    Busca estudiantes que NO estén enrolados en el curso dado.
-    Filtra por nombre, apellido o correo.
-    """
     if request.method == "GET":
         curso_id = request.GET.get("curso_id")
         term = request.GET.get("term", "").strip()
 
         if not curso_id:
             return JsonResponse({"ok": False, "error": "Falta ID del curso"})
-
-        # 1. Obtener IDs de estudiantes YA inscritos en este curso
+       
         inscritos_ids = Enrolamiento.objects.filter(
             curso_id=curso_id
         ).values_list('estudiante_id', flat=True)
 
-        # 2. Filtrar estudiantes EXCLUYENDO los inscritos
         estudiantes = Estudiante.objects.exclude(id__in=inscritos_ids)
 
-        # 3. Aplicar filtro de búsqueda (si el usuario escribió algo)
         if term:
             estudiantes = estudiantes.filter(
                 Q(nombre__icontains=term) | 
@@ -288,7 +265,6 @@ def buscar_estudiantes_disponibles(request):
                 Q(correo_institucional__icontains=term)
             )
         
-        # Limitar resultados para no sobrecargar (ej: 20)
         estudiantes = estudiantes.order_by('nombre')[:20]
 
         data = []
@@ -319,30 +295,24 @@ def desenrolar_estudiante(request):
             enrolamiento = Enrolamiento.objects.filter(curso=curso, estudiante=estudiante).first()
             
             if enrolamiento:
-                # --- LIMPIEZA PROFUNDA DE DATOS ---
-                
-                # 1. Borrar Solicitudes de Revisión en este curso
+
                 SolicitudRevision.objects.filter(estudiante=estudiante, curso=curso).delete()
                 
-                # 2. Borrar Etapas Completadas (Avance) de pacientes de este curso
                 EtapaCompletada.objects.filter(
                     estudiante=estudiante, 
                     etapa__id_paciente__id_curso=curso
                 ).delete()
                 
-                # 3. Borrar Registros (Respuestas Preguntas) de este curso
                 Registro.objects.filter(
                     id_estudiante=estudiante,
                     id_pregunta__id_etapa__id_paciente__id_curso=curso
                 ).delete()
                 
-                # 4. Borrar Registros (Respuestas Exploraciones) de este curso
                 Registro.objects.filter(
                     id_estudiante=estudiante,
                     id_exploracion__id_etapa__id_paciente__id_curso=curso
                 ).delete()
                 
-                # 5. Finalmente, eliminar el enrolamiento
                 enrolamiento.delete()
                 
                 return JsonResponse({'ok': True, 'msg': f'Estudiante {estudiante.nombre} eliminado y sus datos borrados.'})
@@ -365,10 +335,8 @@ def RevisionesDocenteView(request):
     except Docente.DoesNotExist:
         return redirect('login:login_docente')
 
-    # 1. Obtener todas las solicitudes de LOS CURSOS de este docente
     solicitudes = SolicitudRevision.objects.filter(curso__id_docente=docente).order_by('-fecha_solicitud')
 
-    # 2. Filtros
     curso_id = request.GET.get('curso')
     paciente_id = request.GET.get('paciente')
     etapa = request.GET.get('etapa') # 2 o 3
@@ -385,8 +353,7 @@ def RevisionesDocenteView(request):
         solicitudes = solicitudes.filter(estado=estado)
     if estudiante_id:
         solicitudes = solicitudes.filter(estudiante_id=estudiante_id)
-
-    # 3. Enriquecer datos (Buscar la respuesta original del estudiante)
+)
     solicitudes_data = []
     for sol in solicitudes:
         respuesta_original = "No se encontró el registro."
@@ -417,8 +384,7 @@ def RevisionesDocenteView(request):
             'obj': sol,
             'respuesta_original': respuesta_original
         })
-
-    # 4. Procesar Respuesta del Docente (POST)
+)
     if request.method == 'POST':
         solicitud_id = request.POST.get('solicitud_id')
         respuesta_texto = request.POST.get('respuesta_texto')
@@ -430,11 +396,10 @@ def RevisionesDocenteView(request):
             sol_edit.fecha_respuesta = timezone.now()
             sol_edit.save()
             return redirect('cursos:revisiones_docente') 
-        except Exception as e: # <--- CAMBIO AQUÍ
-            print(f"ERROR AL GUARDAR RESPUESTA: {e}") # Verás el error en la consola de Docker
+        except Exception as e:
+            print(f"ERROR AL GUARDAR RESPUESTA: {e}")
             pass
 
-    # Listas para los filtros (Dropdowns)
     cursos_filter = set(s.curso for s in SolicitudRevision.objects.filter(curso__id_docente=docente))
     pacientes_filter = set(s.paciente for s in SolicitudRevision.objects.filter(curso__id_docente=docente))
     estudiantes_filter = set(s.estudiante for s in SolicitudRevision.objects.filter(curso__id_docente=docente))
@@ -503,7 +468,6 @@ def crear_tipo_caso_ajax(request):
             tipo = form.save()
             return JsonResponse({'ok': True, 'id': tipo.id, 'nombre': tipo.nombre})
         
-        # CORRECCIÓN: Devolver los errores del formulario
         return JsonResponse({'ok': False, 'error': form.errors.as_json()})
         
     return JsonResponse({'ok': False, 'error': 'Método no permitido'})
@@ -519,7 +483,6 @@ def crear_paciente_ajax(request):
                 form.save()
                 return JsonResponse({'ok': True, 'msg': 'Paciente creado exitosamente.'})
             else:
-                # CORRECCIÓN: Usar .as_json() en lugar de str()
                 return JsonResponse({'ok': False, 'error': form.errors.as_json()})
         except Exception as e:
             return JsonResponse({'ok': False, 'error': str(e)})
@@ -559,7 +522,6 @@ def guardar_edicion_ajax(request, modelo, pk):
         usuario_id = request.session.get('usuario_id')
         try:
             docente = Docente.objects.get(id=usuario_id)
-            # ... (código de selección de modelo igual) ...
             if modelo == 'curso':
                 obj = get_object_or_404(Curso, pk=pk)
                 form = CursoForm(request.POST, instance=obj)
@@ -571,7 +533,6 @@ def guardar_edicion_ajax(request, modelo, pk):
                 form.save()
                 return JsonResponse({'ok': True})
             
-            # CORRECCIÓN: Usar .as_json()
             return JsonResponse({'ok': False, 'error': form.errors.as_json()})
             
         except Exception as e:
@@ -601,16 +562,10 @@ def ConfigurarEtapasView(request, paciente_id):
     exploraciones_e2 = Exploracion.objects.filter(id_etapa=etapa2)
     diagnostico_e3 = Pregunta.objects.filter(id_etapa=etapa3, tipo='ESCRITA').first()
 
-    # === LÓGICA DE BLOQUEO EN CADENA (CORREGIDA) ===
+    # === LÓGICA DE BLOQUEO EN CADENA ===
     
-    # 1. Etapa 1 está completa si tiene preguntas
     etapa1_completa = preguntas_e1.exists()
-
-    # 2. Etapa 2 está completa SOLO SI tiene exploraciones Y la Etapa 1 está completa
-    # (Esto hace que si borras la Etapa 1, la 2 se invalide automáticamente)
     etapa2_completa = exploraciones_e2.exists() and etapa1_completa
-
-    # 3. Etapa 3 está completa SOLO SI tiene diagnóstico Y la Etapa 2 es válida
     etapa3_completa = bool(diagnostico_e3) and etapa2_completa
 
     caso_listo = etapa1_completa and etapa2_completa and etapa3_completa
@@ -626,7 +581,7 @@ def ConfigurarEtapasView(request, paciente_id):
         'exploraciones_e2': exploraciones_e2,
         'diagnostico_e3': diagnostico_e3,
         'etapa1_completa': etapa1_completa,
-        'etapa2_completa': etapa2_completa, # Ahora pasará False si falló la etapa 1
+        'etapa2_completa': etapa2_completa,
         'caso_listo': caso_listo,
         'form_paciente': form_paciente,
     }
@@ -636,7 +591,6 @@ def ConfigurarEtapasView(request, paciente_id):
 @csrf_exempt
 def guardar_pregunta_etapa(request):
     if request.method == 'POST':
-        # 1. AUTENTICACIÓN PERSONALIZADA (Corrección)
         usuario_id = request.session.get('usuario_id')
         if not usuario_id:
             return JsonResponse({'ok': False, 'error': 'Su sesión ha expirado. Por favor, inicie sesión nuevamente.'})
@@ -648,7 +602,6 @@ def guardar_pregunta_etapa(request):
 
         try:
             with transaction.atomic():
-                # 2. Obtener datos del formulario
                 etapa_id = request.POST.get('etapa_id')
                 pregunta_id = request.POST.get('pregunta_id')
                 titulo = request.POST.get('texto_pregunta')
@@ -659,28 +612,24 @@ def guardar_pregunta_etapa(request):
                 except (ValueError, TypeError):
                     return JsonResponse({'ok': False, 'error': 'Debes seleccionar una alternativa correcta válida.'})
 
-                # 3. Crear o Actualizar la Pregunta
                 if pregunta_id:
                     # === MODO EDICIÓN ===
                     preg = get_object_or_404(Pregunta, id=pregunta_id)
                     preg.titulo = titulo
                     preg.urlvideo = video_url
                     preg.save()
-                    
-                    # Borrar opciones anteriores para recrearlas limpiamente
                     preg.opciones.all().delete() 
                 else:
                     # === MODO CREACIÓN ===
                     etapa = get_object_or_404(Etapa, id=etapa_id)
                     preg = Pregunta.objects.create(
                         id_etapa=etapa,
-                        docente=docente,    # <--- CORREGIDO: Usamos el objeto docente obtenido de la sesión
+                        docente=docente,  
                         titulo=titulo,
                         urlvideo=video_url,
                         tipo='MULTIPLE'
                     )
 
-                # 4. Crear las 4 opciones
                 for i in range(1, 5):
                     texto_op = request.POST.get(f'respuesta_{i}')
                     retro_op = request.POST.get(f'retro_{i}', '')
@@ -721,26 +670,17 @@ def obtener_pregunta_api(request, pk):
 def eliminar_pregunta_api(request, pk):
     if request.method == 'POST':
         try:
-            # 1. Obtener la pregunta y sus relaciones antes de borrar
             pregunta = get_object_or_404(Pregunta, pk=pk)
             etapa = pregunta.id_etapa
             paciente = etapa.id_paciente
             
-            # 2. Eliminar la pregunta
             pregunta.delete()
             
-            # 3. Lógica de Bloqueo: 
-            # Si estamos en la Etapa 1 y acabamos de borrar la última pregunta...
             if etapa.numetapa == 1:
-                # Verificamos si quedaron preguntas en esta etapa
+
                 quedan_preguntas = Pregunta.objects.filter(id_etapa=etapa).exists()
                 
                 if not quedan_preguntas:
-                    # BLOQUEO INMEDIATO:
-                    # Marcamos el paciente como no visible y no completo.
-                    # Esto asegura que nadie pueda ver el caso roto y, 
-                    # al recargar la página, el HTML detectará que la Etapa 1 está vacía
-                    # y bloqueará visualmente las pestañas 2 y 3.
                     paciente.visible = False
                     paciente.completo = False
                     paciente.save()
@@ -931,9 +871,9 @@ def eliminar_registros_api(request):
             return JsonResponse({'ok': False, 'error': str(e)})
     return JsonResponse({'ok': False})
 
-# =========================================================================
-# === NUEVA VISTA: DETALLE INTENTOS POR ESTUDIANTE (PARA EL BOTÓN) ===
-# =========================================================================
+# ====================================================
+# === NUEVA VISTA: DETALLE INTENTOS POR ESTUDIANTE ===
+# ====================================================
 def obtener_detalle_intentos(request, estudiante_id, etapa_id):
     if request.method != "GET":
         return JsonResponse({"error": "Método no permitido"}, status=405)

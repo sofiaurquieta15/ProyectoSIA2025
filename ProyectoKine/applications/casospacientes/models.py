@@ -86,7 +86,6 @@ class Pregunta(models.Model):
         verbose_name="Tipo de Pregunta"
     )
 
-    # Nueva URL de video asociada a cada pregunta
     urlvideo = models.URLField("URL Video de la Pregunta", null=True, blank=True)
 
     clave_respuesta_escrita = models.TextField(
@@ -125,7 +124,6 @@ class Pregunta(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        # CAMBIO AQUÍ: Ahora muestra [NOMBRE PACIENTE] Título de pregunta
         paciente_nombre = "Sin Paciente"
         if self.id_etapa and self.id_etapa.id_paciente:
             paciente_nombre = self.id_etapa.id_paciente.nombre
@@ -162,7 +160,7 @@ class Exploracion(models.Model):
         verbose_name = "Exploración"
         verbose_name_plural = "Exploraciones"
         ordering = ['id_etapa', 'orden']
-        unique_together = ('id_etapa', 'orden')  # para que no tengas dos “PARTE EXP 1” en la misma etapa
+        unique_together = ('id_etapa', 'orden') 
 
     def __str__(self):
         return f"{self.id_etapa} - Parte {self.orden}: {self.titulo}"
@@ -182,7 +180,6 @@ class Exploracion(models.Model):
         return url
 
     def save(self, *args, **kwargs):
-        # MISMA lógica de conversión a embed
         if self.urlvideo:
             if "watch?v=" in self.urlvideo:
                 video_id = self.urlvideo.split("watch?v=")[1].split("&")[0]
@@ -231,7 +228,7 @@ class EtapaCompletada(models.Model):
         return f"{self.estudiante} completó {self.etapa}"
 
 class Registro(models.Model):
-    # Para Preguntas normales (etapa 1 y 3)
+    # Para Preguntas (etapa 1 y 3)
     id_pregunta = models.ForeignKey(
         Pregunta,
         on_delete=models.CASCADE,

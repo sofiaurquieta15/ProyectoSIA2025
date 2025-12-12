@@ -4,11 +4,10 @@ from . import views
 app_name = 'cursos'
 
 urlpatterns = [
-    # Vistas anteriores
     path('menu-docente/', views.MenuDocenteView, name='menu_docente'),
     path('api/notificacion-leida/', views.marcar_notificacion_docente, name='marcar_notificacion_docente'),
     
-    # --- NUEVO MÓDULO DE GESTIÓN (Agrega todo esto) ---
+    # --- MÓDULO DE GESTIÓN ---
     path('mis-cursos/', views.GestionCursosDocenteView, name='mis_cursos'), # Vista gestión cursos
     path('enrolar-estudiante/', views.enrolar_estudiante, name='enrolar_estudiante'),
     path('api/buscar-estudiantes/', views.buscar_estudiantes_disponibles, name='buscar_estudiantes_disponibles'),
@@ -17,13 +16,13 @@ urlpatterns = [
 
     path('detalle-intentos/<int:estudiante_id>/<int:etapa_id>/', views.obtener_detalle_intentos, name='detalle_intentos'),
     
-    # Vista Principal de Gestión de Casos (La de las 3 tarjetas grandes)
+    # Vista Principal de Gestión de Casos
     path('gestion-casos/', views.GestionCasosView, name='gestion_casos'),
     
     # Rutas para Configuración de Etapas
     path('configurar-etapas/<int:paciente_id>/', views.ConfigurarEtapasView, name='configurar_etapas'),
 
-    # APIs AJAX (Para que los formularios funcionen sin recargar)
+    # APIs AJAX
     # Creación
     path('api/crear-curso/', views.crear_curso_ajax, name='crear_curso_ajax'),
     path('api/obtener/<str:modelo>/<int:pk>/', views.obtener_datos_edicion, name='obtener_datos_edicion'),

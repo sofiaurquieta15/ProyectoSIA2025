@@ -1,7 +1,6 @@
 from django import forms
 from .models import Estudiante
 from django.core.exceptions import ValidationError
-from django.views.generic.edit import FormView, CreateView
 
 class LoginForm(forms.Form):
     correo = forms.EmailField(
@@ -49,11 +48,9 @@ class RegistroEstudianteForm(forms.ModelForm):
 
     def clean_correo_institucional(self):
         correo = self.cleaned_data.get('correo_institucional')
-        # 1. Validar dominio
         if not correo.endswith('@alumnos.ucn.cl'):
             raise ValidationError("El correo debe terminar en @alumnos.ucn.cl")
-        
-        # 2. Validar que no exista
+
         if Estudiante.objects.filter(correo_institucional=correo).exists():
             raise ValidationError("Este correo ya está registrado.")
             

@@ -34,7 +34,6 @@
 {% block content %}
 
 <style>
-    /* COLOR UNIFICADO CON AVANCES */
     .border-blue-custom {
         border: 4px solid #1e3a8a; /* Azul oscuro */
     }
@@ -162,10 +161,8 @@ function mostrarModal(titulo, htmlMensaje, esExito) {
     const modal = document.getElementById("modal-feedback");
     document.getElementById("feedback-title").innerText = titulo;
     
-    // Usamos innerHTML para permitir saltos de línea <br> y negritas <b>
     document.getElementById("feedback-text").innerHTML = htmlMensaje;
     
-    // Alinear texto a la izquierda si son errores
     if(!esExito){
         document.getElementById("feedback-text").classList.add("text-left");
     } else {
@@ -191,20 +188,16 @@ document.getElementById("btn-enviar-total")?.addEventListener("click", function(
     let respuestas = [];
     let faltantes = false;
 
-    // 1. Limpiar errores previos (quitar bordes rojos, mensajes y X)
     document.querySelectorAll(".retro-error").forEach(el => el.classList.add("hidden"));
     itemsPreguntas.forEach(div => div.querySelector(".bg-white").classList.remove("border-red-500", "border-2"));
     
-    // Limpiar las X anteriores (buscamos por la clase que le pondremos: 'mark-x')
     document.querySelectorAll(".mark-x").forEach(el => el.remove());
 
-    // Diccionario para saber el número de pregunta visual (1, 2, 3...) basado en su ID
     let mapPreguntaNumero = {};
 
-    // 2. Recolectar respuestas
     itemsPreguntas.forEach((item, index) => {
         let pId = item.dataset.preguntaId;
-        mapPreguntaNumero[pId] = index + 1; // Guardamos que el ID x es la Pregunta 1, etc.
+        mapPreguntaNumero[pId] = index + 1;
 
         let seleccionado = item.querySelector(`input[name="pregunta_${pId}"]:checked`);
 
@@ -225,7 +218,6 @@ document.getElementById("btn-enviar-total")?.addEventListener("click", function(
         return; 
     }
 
-    // 3. Enviar al backend
     fetch("{% url 'casos:validar_respuesta' %}", {
         method: "POST",
         headers: {
@@ -240,11 +232,9 @@ document.getElementById("btn-enviar-total")?.addEventListener("click", function(
     .then(response => response.json())
     .then(data => {
         if (data.ok) {
-            // --- TODO CORRECTO: Construir mensaje de éxito detallado ---
             
             let mensajeExitoHTML = "";
             
-            // data.aciertos es la lista que enviamos desde el backend
             if (data.aciertos) {
                 data.aciertos.forEach(item => {
                     let num = mapPreguntaNumero[item.pregunta_id] || "?";
@@ -267,11 +257,9 @@ document.getElementById("btn-enviar-total")?.addEventListener("click", function(
 
             mensajeExitoHTML += `<p class="font-bold text-center mt-6 text-xl text-blue-800">¡Ya puedes avanzar a la siguiente etapa!</p>`;
 
-            // Mostrar el modal con redirect=true (el tercer parámetro)
             mostrarModal("¡Todas correctas!", mensajeExitoHTML, true);
 
         } else {
-            // --- HAY ERRORES (Esta parte queda igual que antes) ---
             
             let mensajeHTML = "";
             
@@ -286,7 +274,6 @@ document.getElementById("btn-enviar-total")?.addEventListener("click", function(
                     </div>
                 `;
 
-                // Pintar la X (Lógica visual existente)
                 let container = document.getElementById(`pregunta-box-${err.pregunta_id}`);
                 if (container) {
                     let card = container.querySelector(".bg-white");

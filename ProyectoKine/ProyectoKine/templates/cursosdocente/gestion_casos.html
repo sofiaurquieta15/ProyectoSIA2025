@@ -20,7 +20,6 @@
     .border-blue-custom { border: 4px solid #1e3a8a; }
     .btn-blue { background-color: #1e3a8a; color: white; transition: all 0.2s; }
     .btn-blue:hover { background-color: #1e40af; transform: translateY(-1px); }
-    /* Estilos para el scroll del modal */
     .lista-pacientes::-webkit-scrollbar { width: 8px; }
     .lista-pacientes::-webkit-scrollbar-track { background: #f1f1f1; }
     .lista-pacientes::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -331,9 +330,6 @@
 <script>
 // === LOGICA PARA EDITAR CURSO ===
 function cargarCursoParaEditar(id) {
-    // 1. YA NO CERRAMOS el modal de lista aquí.
-    // Al dejarlo abierto, el nuevo modal (que tiene fondo oscuro) se montará encima,
-    // creando el efecto de "oscurecer" el modal de atrás.
     
     const url = `/cursos/api/obtener/curso/${id}/`; 
 
@@ -343,12 +339,9 @@ function cargarCursoParaEditar(id) {
             if (data.error) {
                 alert("Error: " + data.error);
             } else {
-                // Llenar formulario
                 document.getElementById('edit_curso_id').value = id;
                 document.getElementById('edit_nombrecurso').value = data.nombrecurso;
                 document.getElementById('edit_objetivos').value = data.objetivos;
-
-                // Abrir modal de edición (z-index 60) sobre el de lista (z-index 50)
                 abrirModal('modal-editar-curso');
             }
         })
@@ -364,7 +357,6 @@ function guardarCambiosCurso() {
     const formData = new FormData(form);
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    // Limpiar errores visuales
     form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
     form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500', 'bg-red-50'));
 
@@ -393,21 +385,17 @@ function guardarCambiosCurso() {
 let cursoIdParaBorrar = null;
 
 function eliminarCursoDesdeEdit() {
-    // 1. Obtener datos del formulario que ya está abierto
     const id = document.getElementById('edit_curso_id').value;
     const nombre = document.getElementById('edit_nombrecurso').value;
 
-    if(!id) return; // Por seguridad
-
-    // 2. Guardar ID globalmente para el borrado
+    if(!id) return; 
+o
     cursoIdParaBorrar = id;
     document.getElementById('nombre-curso-borrar').innerText = nombre;
 
-    // 3. Abrir confirmación (encima del de edición)
     document.getElementById('modal-confirmar-borrar').classList.remove('hidden');
 }
 
-// Evento click del botón "Sí, eliminar" en el modal de confirmación
 document.getElementById('btn-accion-eliminar').addEventListener('click', function() {
     if(!cursoIdParaBorrar) return;
     
@@ -421,12 +409,9 @@ document.getElementById('btn-accion-eliminar').addEventListener('click', functio
     .then(r => r.json())
     .then(data => {
         if(data.ok) {
-            // Cerrar todos los modales involucrados
             cerrarModal('modal-confirmar-borrar');
             cerrarModal('modal-editar-curso');
-            cerrarModal('modal-lista-cursos'); // Por si estaba abierto abajo
-            
-            // Mostrar éxito y recargar
+            cerrarModal('modal-lista-cursos');
             mostrarPopupExito("Curso eliminado correctamente.");
         } else {
             alert("Error al eliminar: " + data.error);
@@ -438,29 +423,23 @@ document.getElementById('btn-accion-eliminar').addEventListener('click', functio
     });
 });
 
-// Función auxiliar para manejar el popup de éxito
 function mostrarPopupExito(mensaje) {
     const modal = document.getElementById('modal-exito');
     document.getElementById('mensaje-exito-texto').innerText = mensaje;
     
-    // Mostrar modal
     modal.classList.remove('hidden');
     
-    // Esperar 1.5 segundos y recargar la página
     setTimeout(() => {
         location.reload();
     }, 1500);
 }
 
-// Función para mostrar éxito SIN recargar la página (mantiene datos del formulario)
 function mostrarPopupExitoSinRecarga(mensaje) {
     const modal = document.getElementById('modal-exito');
     document.getElementById('mensaje-exito-texto').innerText = mensaje;
     
-    // Mostrar modal
     modal.classList.remove('hidden');
     
-    // Ocultar modal después de 2 segundos PERO SIN RECARGAR
     setTimeout(() => {
         modal.classList.add('hidden');
     }, 2000);
@@ -488,24 +467,19 @@ function mostrarPopupExitoSinRecarga(mensaje) {
 function validarYGuardarPaciente(url) {
     const formId = 'form-crear-paciente';
     const form = document.getElementById(formId);
-    
-    // Limpiar visualmente antes de validar
+
     form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
     form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500', 'bg-red-50'));
 
-    // --- CORRECCIÓN AQUÍ ---
-    // Usamos form.querySelector en lugar de getElementById para asegurar que
-    // tomamos el input de ESTE formulario y no el del modal de Editar.
     let inputEdad = form.querySelector('[name="edad"]');
 
-    // 1. Validación Local (Edad)
+
     if (inputEdad) {
         const edad = parseInt(inputEdad.value);
         if (isNaN(edad) || edad < 0 || edad > 110) {
             
             mostrarPopupError("Tienes datos incorrectos.");
             
-            // Mensaje específico
             const errorSimulado = { 'edad': ['La edad debe ser de 0 a 110'] }; 
             marcarErroresInline(formId, errorSimulado);
             
@@ -522,7 +496,6 @@ function validarYGuardarPaciente(url) {
             cerrarModal('modal-crear-paciente');
             mostrarPopupExito("Paciente creado exitosamente"); 
         } else {
-            // ERROR DEL SERVIDOR
             mostrarPopupError("Tienes datos incompletos.");
             marcarErroresInline(formId, data.error);
         }
@@ -541,27 +514,23 @@ function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); 
 let todosPacientes = [];
 
 function abrirBuscadorPacientes() {
-    // 1. Cargar datos si es la primera vez
     if (todosPacientes.length === 0) {
         const rawData = document.getElementById('data-pacientes').textContent;
         try {
             todosPacientes = JSON.parse(rawData);
-            inicializarFiltros(); // Llenar selects
+            inicializarFiltros();
         } catch (e) {
             console.error("Error leyendo datos de pacientes", e);
         }
     }
     
-    // 2. Renderizar inicial
     renderizarPacientes(todosPacientes);
     
-    // 3. Mostrar modal
     abrirModal('modal-buscar-paciente');
     document.getElementById('filtro-nombre').focus();
 }
 
 function inicializarFiltros() {
-    // Extraer cursos únicos y tipos únicos para llenar los selects
     const cursosMap = new Map();
     const tiposMap = new Map();
 
@@ -580,7 +549,6 @@ function inicializarFiltros() {
         selTipo.add(new Option(nombre, id));
     });
 
-    // Agregar listeners para filtrar al cambiar cualquier cosa
     const inputs = ['filtro-nombre', 'filtro-curso', 'filtro-tipo', 'filtro-visibilidad', 'filtro-progreso'];
     inputs.forEach(id => {
         document.getElementById(id).addEventListener('input', filtrarPacientes);
@@ -595,20 +563,15 @@ function filtrarPacientes() {
     const progreso = document.getElementById('filtro-progreso').value;
 
     const filtrados = todosPacientes.filter(p => {
-        // Filtro Texto
         if (!p.nombre.toLowerCase().includes(texto)) return false;
         
-        // Filtro Curso
         if (curso !== 'todos' && p.curso_id !== curso) return false;
-        
-        // Filtro Tipo
+
         if (tipo !== 'todos' && p.tipo_id !== tipo) return false;
-        
-        // Filtro Visibilidad
+
         if (visibilidad === 'visible' && !p.visible) return false;
         if (visibilidad === 'oculto' && p.visible) return false;
 
-        // Filtro Progreso (Requiere el campo en models, si no existe asumimos siempre true para no romper)
         if (progreso === 'completo' && !p.completo) return false;
         if (progreso === 'incompleto' && p.completo) return false;
 
@@ -668,13 +631,12 @@ function irConfiguracion(id) {
     window.location.href = `/cursos/configurar-etapas/${id}/`;
 }
 
-// === AJAX CREAR (Tu código existente) ===
+// === AJAX CREAR ===
 function enviarFormulario(formId, url) {
     const form = document.getElementById('form-' + formId);
     const formData = new FormData(form);
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    // Limpiar errores previos antes de enviar
     form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
     form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500', 'bg-red-50'));
 
@@ -690,9 +652,7 @@ function enviarFormulario(formId, url) {
             setTimeout(() => location.reload(), 1500);
         } 
         else { 
-            // 1. Popup General
             mostrarPopupError("Tienes datos incompletos.");
-            // 2. Marcar campos en rojo
             marcarErroresInline('form-' + formId, data.error);
         }
     })
@@ -701,14 +661,14 @@ function enviarFormulario(formId, url) {
     });
 }
 
-// === AJAX TIPO CASO (Tu código existente) ===
+// === AJAX TIPO CASO ===
 function guardarTipoCaso() {
     const formId = 'form-tipo-caso';
     const form = document.getElementById(formId);
     const formData = new FormData(form);
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    // Limpiar errores previos
+
     form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
 
     fetch("{% url 'cursos:crear_tipo_caso_ajax' %}", { 
@@ -719,20 +679,18 @@ function guardarTipoCaso() {
     .then(r => r.json())
     .then(data => {
         if(data.ok) {
-            // Agregar el nuevo tipo al Select del formulario de Paciente (que está debajo)
             let select = document.getElementById('id_tipo_caso');
             if (!select) select = document.querySelector('select[name="tipo_caso"]');
             
             if (select) {
                 const nuevaOpcion = new Option(data.nombre, data.id);
                 select.add(nuevaOpcion);
-                select.value = data.id; // Seleccionarlo automáticamente
+                select.value = data.id; 
             }
             
             form.reset();
             cerrarModal('modal-tipo-caso');
             
-            // USAMOS LA NUEVA FUNCIÓN QUE NO RECARGA LA PÁGINA
             mostrarPopupExitoSinRecarga("Nuevo tipo de caso creado.");
         } else { 
             mostrarPopupError("Tienes datos incompletos.");
@@ -747,7 +705,6 @@ function guardarTipoCaso() {
 
 function mostrarPopupError(mensajeCustom) {
     const contenedor = document.getElementById('mensaje-error-texto');
-    // Si no enviamos mensaje, usamos el default
     const texto = mensajeCustom || "Tienes datos incompletos.";
     
     contenedor.innerHTML = `<p class="font-bold text-center text-gray-700 text-lg">${texto}</p>`;
@@ -758,26 +715,21 @@ function marcarErroresInline(formId, errorData) {
     const form = document.getElementById(formId);
     if (!form) return;
 
-    // A. Limpiar errores previos
     form.querySelectorAll('.error-text-inline').forEach(el => el.remove());
     form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500', 'bg-red-50'));
 
-    // B. Parsear errores
     try {
         if (typeof errorData === 'string') errorData = JSON.parse(errorData);
         
-        // C. Recorrer campos con error
         if (typeof errorData === 'object' && errorData !== null) {
             for (const campo in errorData) {
                 if (campo === '__all__') continue;
 
-                // 1. Buscar el input
                 const input = form.querySelector(`[name="${campo}"]`);
                 
                 if (input) {
                     input.classList.add('border-red-500', 'bg-red-50');
 
-                    // 2. Buscar el Label asociado
                     let label = null;
                     if (input.id) {
                         label = form.querySelector(`label[for="${input.id}"]`);
@@ -786,25 +738,20 @@ function marcarErroresInline(formId, errorData) {
                         label = input.parentElement.querySelector('label');
                     }
 
-                    // 3. Insertar mensaje DINÁMICO
                     if (label) {
                         let contenidoError = errorData[campo];
-                        let mensajeTexto = "¡Falta completar!"; // Texto por defecto
+                        let mensajeTexto = "¡Falta completar!";
 
-                        // --- LÓGICA DE DETECCIÓN DE FORMATO ---
                         if (Array.isArray(contenidoError)) {
                             let primerError = contenidoError[0];
                             
-                            // Caso 1: Error de Django (es un objeto {message: "...", code: "..."})
                             if (typeof primerError === 'object' && primerError !== null && primerError.message) {
                                 mensajeTexto = primerError.message;
                             } 
-                            // Caso 2: Error manual (es un string simple "La edad debe ser...")
                             else {
                                 mensajeTexto = primerError;
                             }
                         } else {
-                            // Caso 3: String directo (raro, pero posible)
                             mensajeTexto = contenidoError;
                         }
                         // ----------------------------------------

@@ -16,7 +16,6 @@
     .border-blue-custom {
         border: 4px solid #1e3a8a; /* Azul oscuro institucional */
     }
-    /* Animación suave para los modales */
     .fade-in { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 </style>
@@ -332,11 +331,9 @@ function toggleNotificacionesDocente() {
 </script>
 
 <script>
-    // Control de Modales
     function abrirModal(id) { document.getElementById(id).classList.remove('hidden'); }
     function cerrarModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-    // Toggle formularios dentro del modal
     function mostrarCambioPass() {
         document.getElementById('form-datos-basicos').classList.add('hidden');
         document.getElementById('form-password').classList.remove('hidden');
@@ -346,20 +343,16 @@ function toggleNotificacionesDocente() {
         document.getElementById('form-datos-basicos').classList.remove('hidden');
     }
 
-    // Mostrar/Ocultar contraseña
     function togglePass(id) {
         const input = document.getElementById(id);
         input.type = input.type === "password" ? "text" : "password";
     }
 
-    // Lógica automática al cargar la página
     window.onload = function() {
-        // Verificamos si Django envió algún mensaje (Éxito o Error)
         {% if messages %}
-            // 1. Abrimos el modal siempre que haya un mensaje para que el usuario lo vea
-            abrirModal('modal-perfil');
 
-            // 2. Revisamos si el mensaje pertenece a la pestaña de contraseña para cambiar de vista
+            abrirModal('modal-perfil');
+            
             {% for message in messages %}
                 {% if 'error_pass_actual_cambio' in message.tags or 'error_pass_match' in message.tags %}
                     mostrarCambioPass();

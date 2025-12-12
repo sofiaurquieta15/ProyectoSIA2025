@@ -6,12 +6,9 @@ from django.db.models import Count
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-# Importación de Modelos EXTERNOS
 from applications.cursosdocente.models import Curso
 from applications.login.models import Estudiante
 from applications.casospacientes.models import Paciente, Etapa, EtapaCompletada, Exploracion
-
-# Importación de Modelos PROPIOS
 from applications.cursosestudiante.models import Avance, Enrolamiento, SolicitudRevision, NotificacionVista
 
 class ListaCursosEstudianteView(ListView):
@@ -34,30 +31,24 @@ def MenuEstudianteView(request):
         estudiante = Estudiante.objects.get(id=estudiante_id)
     except Estudiante.DoesNotExist: return redirect('login:login_estudiante')
 
-    # 1. Obtener lista de IDs que este estudiante YA VIO
     vistas = NotificacionVista.objects.filter(estudiante=estudiante).values_list('tipo', 'referencia_id')
-    # Creamos un set para búsqueda rápida: {'SOLICITUD_5', 'PACIENTE_10', ...}
     vistas_set = {f"{v[0]}_{v[1]}" for v in vistas}
 
     notificaciones_lista = []
-
-    # --- A) SOLICITUDES (Traemos 10) ---
     solicitudes = SolicitudRevision.objects.filter(
         estudiante=estudiante, estado='RESPONDIDA'
     ).select_related('curso', 'curso__id_docente', 'paciente').order_by('-fecha_respuesta')[:10]
 
     for sol in solicitudes:
-        # Generar ID único lógico
         uid_logico = f"SOLICITUD_{sol.id}"
         es_leido = uid_logico in vistas_set
-        
-        # Link con filtros
+
         link = f"/cursosestudiante/estado-solicitudes/?curso={sol.curso.id}&paciente={sol.paciente.id}&tipo={sol.etapa_solicitud}&estado=RESPONDIDA"
         
         docente = sol.curso.id_docente
         notificaciones_lista.append({
-            'tipo_obj': 'SOLICITUD',     # Para la API
-            'id_obj': sol.id,            # Para la API
+            'tipo_obj': 'SOLICITUD',
+            'id_obj': sol.id,            
             'leido': es_leido,
             
             # Datos visuales
@@ -70,7 +61,6 @@ def MenuEstudianteView(request):
             'fecha': sol.fecha_respuesta,
         })
 
-    # --- B) PACIENTES (Traemos 10) ---
     mis_cursos_ids = Enrolamiento.objects.filter(estudiante=estudiante).values_list('curso_id', flat=True)
     pacientes = Paciente.objects.filter(
         id_curso__id__in=mis_cursos_ids, visible=True
@@ -95,13 +85,10 @@ def MenuEstudianteView(request):
             'fecha': None,
         })
 
-    # Ordenar: Ponemos las NO leídas primero, luego por fecha (simulado)
     notificaciones_lista.sort(key=lambda x: x['leido']) 
     
-    # Cortar a 10 items totales
     notificaciones_lista = notificaciones_lista[:10]
 
-    # Contar reales no leídas para el badge rojo
     count_no_leidas = sum(1 for n in notificaciones_lista if not n['leido'])
 
     context = {
@@ -120,13 +107,11 @@ def marcar_notificacion_vista(request):
         
         try:
             estudiante = Estudiante.objects.get(id=estudiante_id)
-            # Leer datos de la petición JS
             import json
             data = json.loads(request.body)
             tipo = data.get('tipo')
             ref_id = data.get('id')
             
-            # Guardar en base de datos que ya se vio
             NotificacionVista.objects.get_or_create(
                 estudiante=estudiante,
                 tipo=tipo,
@@ -153,11 +138,8 @@ def RevisarAvancesView(request):
 
     for enrol in enrolamientos:
         curso = enrol.curso
-        
-        # --- CAMBIO AQUÍ ---
-        # Agregamos visible=True para filtrar los ocultos/borradores
+
         pacientes = Paciente.objects.filter(id_curso=curso, visible=True)
-        # -------------------
 
         pacientes_data = []
         
@@ -229,7 +211,6 @@ def SolicitudRevisionView(request):
     except Estudiante.DoesNotExist:
         return redirect('login:login_estudiante')
 
-    # 1. Obtener IDs de exploraciones PENDIENTES (Etapa 2)
     exploraciones_pendientes_ids = SolicitudRevision.objects.filter(
         estudiante=usuario,
         estado='PENDIENTE',
@@ -237,7 +218,6 @@ def SolicitudRevisionView(request):
         exploracion_especifica__isnull=False
     ).values_list('exploracion_especifica_id', flat=True)
 
-    # 2. NUEVO: Obtener IDs de pacientes con DIAGNÓSTICO PENDIENTE (Etapa 3)
     pacientes_diagnostico_pendiente_ids = SolicitudRevision.objects.filter(
         estudiante=usuario,
         estado='PENDIENTE',
@@ -269,7 +249,7 @@ def SolicitudRevisionView(request):
                     'nombre': p.nombre,
                     'etapas_completadas': list(completadas),
                     'exploraciones': lista_exploraciones,
-                    'tiene_diagnostico_pendiente': tiene_diagnostico_pendiente  # <--- DATO NUEVO ENVIADO AL FRONTEND
+                    'tiene_diagnostico_pendiente': tiene_diagnostico_pendiente  
                 })
 
         if pacientes_validos:
@@ -352,22 +332,18 @@ def EstadoSolicitudesView(request):
     except Estudiante.DoesNotExist:
         return redirect('login:login_estudiante')
 
-    # 1. Consulta Base (Todas las solicitudes del alumno)
     solicitudes = SolicitudRevision.objects.filter(estudiante=usuario).order_by('-fecha_solicitud')
 
-    # 2. Obtener opciones para los filtros (Solo cursos/pacientes presentes en sus solicitudes)
-    # Usamos distinct para no repetir opciones en el dropdown
     cursos_ids = solicitudes.values_list('curso_id', flat=True).distinct()
     pacientes_ids = solicitudes.values_list('paciente_id', flat=True).distinct()
     
     cursos_filter = Curso.objects.filter(id__in=cursos_ids)
     pacientes_filter = Paciente.objects.filter(id__in=pacientes_ids)
 
-    # 3. Aplicar Filtros si vienen en la URL (GET)
     curso_id = request.GET.get('curso')
     paciente_id = request.GET.get('paciente')
     estado = request.GET.get('estado')
-    tipo = request.GET.get('tipo') # 2=Exploración, 3=Diagnóstico
+    tipo = request.GET.get('tipo')
 
     if curso_id:
         solicitudes = solicitudes.filter(curso_id=curso_id)
@@ -385,7 +361,6 @@ def EstadoSolicitudesView(request):
         'solicitudes': solicitudes,
         'cursos_filter': cursos_filter,
         'pacientes_filter': pacientes_filter,
-        # Enviamos lo seleccionado para mantener el valor en el input
         'selected_curso': int(curso_id) if curso_id else '',
         'selected_paciente': int(paciente_id) if paciente_id else '',
         'selected_estado': estado or '',

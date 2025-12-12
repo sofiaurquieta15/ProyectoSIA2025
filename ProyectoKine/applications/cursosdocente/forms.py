@@ -20,7 +20,6 @@ class TipoCasoForm(forms.ModelForm):
         }
 
 class PacienteForm(forms.ModelForm):
-    # Campo extra para mostrar el botón de "Nuevo Tipo"
     nuevo_tipo_caso = forms.BooleanField(required=False, widget=forms.HiddenInput())
 
     class Meta:
