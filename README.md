@@ -13,9 +13,40 @@ Desarrollado bajo un enfoque ágil SCRUMBAN, KineLearn busca integrar la tecnolo
 - Sofia Urquieta Palma
 - Millaray Zalazar Maluenda
 ## Instrucciones de instalación y ejecución
-El proyecto ofrece dos métodos de ejecución: 1.**local** (usando entorno virtual y PostgreSQL) o 2. **mediante contenedores** (usando Docker).
+El proyecto ofrece dos métodos de ejecución: 2. **mediante contenedores** (usando Docker) o 2.**local** (usando entorno virtual y PostgreSQL) 
 
-## Opción 1: Instalación Local (Python/PostgreSQL)
+### Opción 1: Instalación Mediante Contenedores (Recomendado)
+- ***Requisitos: tener Docker instalado y y el motor de contenedores en estado "running"***
+1.Entrar al terminal en la carpeta principal del proyecto
+2. Creación del archivo de variables de entorno (.env):
+3. Dentro del nuevo archivo, crear configuraciones y credenciales de la base de datos:
+    - **Configuración del Proyecto**
+    -  DJANGO_SETTINGS_MODULE=ProyectoKine.settings.deploy
+    -  DEBUG=False
+    -  ALLOWED_HOSTS=localhost,127.0.0.1
+    - **Credenciales de PostgreSQL para Docker**
+    - **POSTGRES_HOST debe coincidir con el nombre del servicio en docker-compose.yml**
+    -  POSTGRES_DB=db_proyectokine
+    -  POSTGRES_USER=user_proyectokine
+    -  POSTGRES_PASSWORD=123456
+    -  POSTGRES_HOST=db
+    -  POSTGRES_PORT=5432
+4. Ejecución y Despliegue de Docker en el terminal
+    -  Utilizar el comando: docker-compose up –build (importante: no cierre esta terminal)
+5. Ejecutar Migraciones y Recolectar Estáticos:
+   - Abrir una nueva terminal y ejecutar los siguientes comandos, uno a la vez.
+   - **Ejecutar migraciones:**
+   - docker-compose exec web python manage.py migrate
+   - **Recolectar archivos estáticos:**
+   - docker-compose exec web python manage.py collectstatic --noinput
+   - **Crear Super Usuario:**
+   - docker-compose exec web python manage.py createsuperuser
+6. Acceder a la Aplicación:
+   - Abre tu navegador y dirígete a: http://localhost:8000
+7. Verificación:
+   - Verificar que el proyecto y sus servicios (WEB y BD) aparezcan como activos en Docker Desktop.
+ 
+### Opción 2: Instalación Local (Python/PostgreSQL)
 - ***Requisitos: tener Python instalado y Postgresql***
 1. Clonar el repositorio:
    - Descargar el repositorio (ya sea descargando el ZIP o clonando la URL).
@@ -37,37 +68,6 @@ El proyecto ofrece dos métodos de ejecución: 1.**local** (usando entorno virtu
    - python manage.py createsuperuser
 9. Ejecutar el servidor
    - python manage.py runserver
-
-## Opción 2: Instalación Mediante Contenedores (Recomendado)
-- ***Requisitos: tener Docker instalado y y el motor de contenedores en estado "running"***
-1.Entrar al terminal en la carpeta principal del proyecto
-2. Creación del archivo de variables de entorno (.env):
-3. Dentro del nuevo archivo, crear configuraciones y credenciales de la base de datos:
-   **Configuración del Proyecto**
-    -  DJANGO_SETTINGS_MODULE=ProyectoKine.settings.deploy
-    -  DEBUG=False
-    -  ALLOWED_HOSTS=localhost,127.0.0.1
-   **Credenciales de PostgreSQL para Docker**
-   **POSTGRES_HOST debe coincidir con el nombre del servicio en docker-compose.yml**
-    -  POSTGRES_DB=db_proyectokine
-    -  POSTGRES_USER=user_proyectokine
-    -  POSTGRES_PASSWORD=123456
-    -  POSTGRES_HOST=db
-    -  POSTGRES_PORT=5432
-4. Ejecución y Despliegue de Docker en el terminal
-    -  Utilizar el comando: docker-compose up –build (importante: no cierre esta terminal)
-5. Ejecutar Migraciones y Recolectar Estáticos:
-   - Abrir una nueva terminal y ejecutar los siguientes comandos, uno a la vez.
-     **Ejecutar migraciones:**
-   - docker-compose exec web python manage.py migrate
-     **Recolectar archivos estáticos:**
-   - docker-compose exec web python manage.py collectstatic --noinput
-     **Crear Super Usuario:**
-   - docker-compose exec web python manage.py createsuperuser
-6. Acceder a la Aplicación:
-   - Abre tu navegador y dirígete a: http://localhost:8000
-7. Verificación:
-   - Verificar que el proyecto y sus servicios (WEB y BD) aparezcan como activos en Docker Desktop.
 
 
 ## Datos de conexión de la base de datos
