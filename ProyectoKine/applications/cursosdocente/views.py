@@ -131,7 +131,13 @@ def GestionCursosDocenteView(request):
         total_estudiantes = enrolamientos.count()
         curso_stats['total_estudiantes'] = total_estudiantes
 
-        pacientes_curso = Paciente.objects.filter(id_curso=curso_activo)
+        # --- CAMBIO IMPORTANTE AQUÍ ---
+        # Filtramos solo los pacientes VISIBLES (visible=True).
+        # Esto hace que:
+        # 1. Los pacientes ocultos no aparezcan en la tabla.
+        # 2. El cálculo del 100% solo tome en cuenta los casos publicados.
+        pacientes_curso = Paciente.objects.filter(id_curso=curso_activo, visible=True)
+        # ------------------------------
         
         # --- A. PROCESAR DATOS DE CADA ESTUDIANTE ---
         for enrol in enrolamientos:
@@ -149,7 +155,7 @@ def GestionCursosDocenteView(request):
                     hecha = EtapaCompletada.objects.filter(estudiante=est, etapa=etapa).exists()
                     
                     etapas_info_p.append({
-                        'id': etapa.id,            # ID necesario para el botón de detalle
+                        'id': etapa.id,
                         'num': etapa.numetapa,
                         'nombre': etapa.nombreetapa,
                         'completada': hecha
@@ -161,15 +167,15 @@ def GestionCursosDocenteView(request):
                 pacientes_info.append({
                     'nombre': paciente.nombre,
                     'etapas': etapas_info_p,
-                    'estudiante_id': est.id        # ID necesario para el botón de detalle
+                    'estudiante_id': est.id
                 })
             
             porcentaje = 0
             if total_etapas > 0:
                 porcentaje = int((etapas_completadas / total_etapas) * 100)
             
-            # Contar para el global si el alumno terminó todo (100%)
-            if porcentaje == 100:
+            # Contar para el global si el alumno terminó todo lo visible (100%)
+            if porcentaje == 100 and total_etapas > 0:
                 curso_stats['completados'] += 1
 
             estudiantes_data.append({
