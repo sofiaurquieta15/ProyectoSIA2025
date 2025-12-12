@@ -2,7 +2,7 @@
 Plataforma educativa interactiva para el aprendizaje de Kinesiología en la Universidad Católica del Norte.
 ## Descripción
 **KineLearn** es un sistema de apoyo educativo desarrollado para la carrera de Kinesiología de la Universidad Católica del Norte (UCN). Su objetivo es optimizar el proceso de enseñanza y aprendizaje mediante la digitalización de clases, módulos interactivos y formularios de diagnóstico clínico.
-La plataforma permite a los docentes crear, administrar y evaluar contenido educativo —como videos, formularios y preguntas interactivas—, mientras que los estudiantes pueden acceder a clases, completar módulos prácticos y recibir retroalimentación personalizada.
+La plataforma permite a los docentes crear, administrar y evaluar contenido educativo como videos, formularios y preguntas interactivas, mientras que los estudiantes pueden acceder a clases, completar módulos prácticos y recibir retroalimentación personalizada.
 Desarrollado bajo un enfoque ágil SCRUMBAN, KineLearn busca integrar la tecnología en la formación académica, garantizando una experiencia intuitiva, accesible y segura que fortalece las competencias prácticas de los futuros kinesiólogos
 ## Integrantes y roles del equipo
 - Jalil Ahure Cortés - Scrum Master
@@ -20,19 +20,20 @@ El proyecto ofrece dos métodos de ejecución: 2. **mediante contenedores** (usa
 1.Entrar al terminal en la carpeta principal del proyecto
 2. Creación del archivo de variables de entorno (.env):
 3. Dentro del nuevo archivo, crear configuraciones y credenciales de la base de datos:
-    - **Configuración del Proyecto**
+    - 3.1 **Configuración del Proyecto**
     -  DJANGO_SETTINGS_MODULE=ProyectoKine.settings.deploy
     -  DEBUG=False
     -  ALLOWED_HOSTS=localhost,127.0.0.1
-    - **Credenciales de PostgreSQL para Docker**
-    - **POSTGRES_HOST debe coincidir con el nombre del servicio en docker-compose.yml**
+    - 3.2 **Credenciales de PostgreSQL para Docker**
+    - NOTA: POSTGRES_HOST debe coincidir con el nombre del servicio en docker-compose.yml
     -  POSTGRES_DB=db_proyectokine
     -  POSTGRES_USER=user_proyectokine
     -  POSTGRES_PASSWORD=123456
     -  POSTGRES_HOST=db
     -  POSTGRES_PORT=5432
 4. Ejecución y Despliegue de Docker en el terminal
-    -  Utilizar el comando: docker-compose up –build (importante: no cierre esta terminal)
+    -  NOTA: no cierre esta terminal
+    -  Utilizar el comando: docker-compose up –build
 5. Ejecutar Migraciones y Recolectar Estáticos:
    - Abrir una nueva terminal y ejecutar los siguientes comandos, uno a la vez.
    - **Ejecutar migraciones:**
