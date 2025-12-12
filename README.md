@@ -44,30 +44,30 @@ El proyecto ofrece dos métodos de ejecución: 1.**local** (usando entorno virtu
 2. Creación del archivo de variables de entorno (.env):
 3. Dentro del nuevo archivo, crear configuraciones y credenciales de la base de datos:
    **Configuración del Proyecto**
- -  DJANGO_SETTINGS_MODULE=ProyectoKine.settings.deploy
- -  DEBUG=False
- -  ALLOWED_HOSTS=localhost,127.0.0.1
+    -  DJANGO_SETTINGS_MODULE=ProyectoKine.settings.deploy
+    -  DEBUG=False
+    -  ALLOWED_HOSTS=localhost,127.0.0.1
    **Credenciales de PostgreSQL para Docker**
    **POSTGRES_HOST debe coincidir con el nombre del servicio en docker-compose.yml**
- -  POSTGRES_DB=db_proyectokine
- -  POSTGRES_USER=user_proyectokine
- -  POSTGRES_PASSWORD=123456
- -  POSTGRES_HOST=db
- -  POSTGRES_PORT=5432
+    -  POSTGRES_DB=db_proyectokine
+    -  POSTGRES_USER=user_proyectokine
+    -  POSTGRES_PASSWORD=123456
+    -  POSTGRES_HOST=db
+    -  POSTGRES_PORT=5432
 4. Ejecución y Despliegue de Docker en el terminal
- -  Utilizar el comando: docker-compose up –build (importante: no cierre esta terminal)
+    -  Utilizar el comando: docker-compose up –build (importante: no cierre esta terminal)
 5. Ejecutar Migraciones y Recolectar Estáticos:
-- Abrir una nueva terminal y ejecutar los siguientes comandos, uno a la vez.
-  **Ejecutar migraciones:**
-- docker-compose exec web python manage.py migrate
-  **Recolectar archivos estáticos:**
-- docker-compose exec web python manage.py collectstatic --noinput
-  **Crear Super Usuario:**
-- docker-compose exec web python manage.py createsuperuser
+   - Abrir una nueva terminal y ejecutar los siguientes comandos, uno a la vez.
+     **Ejecutar migraciones:**
+   - docker-compose exec web python manage.py migrate
+     **Recolectar archivos estáticos:**
+   - docker-compose exec web python manage.py collectstatic --noinput
+     **Crear Super Usuario:**
+   - docker-compose exec web python manage.py createsuperuser
 6. Acceder a la Aplicación:
-- Abre tu navegador y dirígete a: http://localhost:8000
+   - Abre tu navegador y dirígete a: http://localhost:8000
 7. Verificación:
-- Verificar que el proyecto y sus servicios (WEB y BD) aparezcan como activos en Docker Desktop.
+   - Verificar que el proyecto y sus servicios (WEB y BD) aparezcan como activos en Docker Desktop.
 
 
 ## Datos de conexión de la base de datos
