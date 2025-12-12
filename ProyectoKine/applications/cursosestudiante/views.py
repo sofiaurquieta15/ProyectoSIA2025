@@ -153,7 +153,12 @@ def RevisarAvancesView(request):
 
     for enrol in enrolamientos:
         curso = enrol.curso
-        pacientes = Paciente.objects.filter(id_curso=curso)
+        
+        # --- CAMBIO AQUÍ ---
+        # Agregamos visible=True para filtrar los ocultos/borradores
+        pacientes = Paciente.objects.filter(id_curso=curso, visible=True)
+        # -------------------
+
         pacientes_data = []
         
         total_etapas_curso = 0
