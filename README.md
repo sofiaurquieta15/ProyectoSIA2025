@@ -17,7 +17,7 @@ El proyecto ofrece dos métodos de ejecución: 1. **Mediante contenedores** (usa
 
 ### Opción 1: Instalación Mediante Contenedores (Recomendado)
 - ***Requisitos: tener Docker instalado y y el motor de contenedores en estado "running"***
-1.Entrar al terminal en la carpeta principal del proyecto
+1. Entrar al terminal en la carpeta principal del proyecto
 2. Creación del archivo de variables de entorno (.env):
 3. Dentro del nuevo archivo, crear configuraciones y credenciales de la base de datos:
     - 3.1 **Configuración del Proyecto**
