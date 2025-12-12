@@ -13,7 +13,7 @@ Desarrollado bajo un enfoque ágil SCRUMBAN, KineLearn busca integrar la tecnolo
 - Sofia Urquieta Palma
 - Millaray Zalazar Maluenda
 ## Instrucciones de instalación y ejecución
-El proyecto ofrece dos métodos de ejecución: 2. **mediante contenedores** (usando Docker) o 2.**local** (usando entorno virtual y PostgreSQL) 
+El proyecto ofrece dos métodos de ejecución: 1. **mediante contenedores** (usando Docker) o 2.**local** (usando entorno virtual y PostgreSQL) 
 
 ### Opción 1: Instalación Mediante Contenedores (Recomendado)
 - ***Requisitos: tener Docker instalado y y el motor de contenedores en estado "running"***
@@ -35,7 +35,7 @@ El proyecto ofrece dos métodos de ejecución: 2. **mediante contenedores** (usa
     -  NOTA: no cierre esta terminal
     -  Utilizar el comando: docker-compose up –build
 5. Ejecutar Migraciones y Recolectar Estáticos:
-   - Abrir una nueva terminal y ejecutar los siguientes comandos, uno a la vez.
+   - 5.1 Abrir una nueva terminal y ejecutar los siguientes comandos, uno a la vez.
    - **Ejecutar migraciones:**
    - docker-compose exec web python manage.py migrate
    - **Recolectar archivos estáticos:**
@@ -62,7 +62,7 @@ El proyecto ofrece dos métodos de ejecución: 2. **mediante contenedores** (usa
    - Conectar a la DB: \c db_kinelearn;
    5.6 Crear schemas y permisos: GRANT USAGE ON SCHEMA public TO user_admin; | GRANT CREATE ON SCHEMA public TO user_admin;
 7. Migrar la base de datos en la terminal
-   - Utilice los siguientes comandos, uno a la vez:
+   - 7.1 Utilice los siguientes comandos, uno a la vez:
    - python manage.py makemigrations
    - python manage.py migrate
 8. Crear un superusuario y cargar los datos iniciales
