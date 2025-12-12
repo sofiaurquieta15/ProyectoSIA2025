@@ -51,9 +51,9 @@ El proyecto ofrece dos métodos de ejecución: 1. **Mediante contenedores** (usa
 - ***Requisitos: tener Python instalado y Postgresql***
 1. Clonar el repositorio:
    - Descargar el repositorio (ya sea descargando el ZIP o clonando la URL).
-2. Crear y activar un entorno virtual:
+2. Entrar al terminal
+3. Crear y activar un entorno virtual:
    - Utilice el comando: python -m venv .entorno 
-3. Entrar al terminal
 4. Crear dependencias, use librerías: django, psycopg2 y django-jazzmin.
 5. Configurar PostgreSQL:
    - Crear la base de datos: CREATE DATABASE db_kinelearn;
