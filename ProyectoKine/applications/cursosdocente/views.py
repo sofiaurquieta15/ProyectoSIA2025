@@ -550,9 +550,18 @@ def ConfigurarEtapasView(request, paciente_id):
     exploraciones_e2 = Exploracion.objects.filter(id_etapa=etapa2)
     diagnostico_e3 = Pregunta.objects.filter(id_etapa=etapa3, tipo='ESCRITA').first()
 
+    # === LÓGICA DE BLOQUEO EN CADENA (CORREGIDA) ===
+    
+    # 1. Etapa 1 está completa si tiene preguntas
     etapa1_completa = preguntas_e1.exists()
-    etapa2_completa = exploraciones_e2.exists()
-    etapa3_completa = bool(diagnostico_e3)
+
+    # 2. Etapa 2 está completa SOLO SI tiene exploraciones Y la Etapa 1 está completa
+    # (Esto hace que si borras la Etapa 1, la 2 se invalide automáticamente)
+    etapa2_completa = exploraciones_e2.exists() and etapa1_completa
+
+    # 3. Etapa 3 está completa SOLO SI tiene diagnóstico Y la Etapa 2 es válida
+    etapa3_completa = bool(diagnostico_e3) and etapa2_completa
+
     caso_listo = etapa1_completa and etapa2_completa and etapa3_completa
 
     form_paciente = PacienteForm(user=docente, instance=paciente)
@@ -566,7 +575,7 @@ def ConfigurarEtapasView(request, paciente_id):
         'exploraciones_e2': exploraciones_e2,
         'diagnostico_e3': diagnostico_e3,
         'etapa1_completa': etapa1_completa,
-        'etapa2_completa': etapa2_completa,
+        'etapa2_completa': etapa2_completa, # Ahora pasará False si falló la etapa 1
         'caso_listo': caso_listo,
         'form_paciente': form_paciente,
     }
@@ -576,21 +585,30 @@ def ConfigurarEtapasView(request, paciente_id):
 @csrf_exempt
 def guardar_pregunta_etapa(request):
     if request.method == 'POST':
+        # 1. AUTENTICACIÓN PERSONALIZADA (Corrección)
+        usuario_id = request.session.get('usuario_id')
+        if not usuario_id:
+            return JsonResponse({'ok': False, 'error': 'Su sesión ha expirado. Por favor, inicie sesión nuevamente.'})
+
+        try:
+            docente = Docente.objects.get(id=usuario_id)
+        except Docente.DoesNotExist:
+            return JsonResponse({'ok': False, 'error': 'Docente no válido.'})
+
         try:
             with transaction.atomic():
-                # 1. Obtener datos del formulario
+                # 2. Obtener datos del formulario
                 etapa_id = request.POST.get('etapa_id')
                 pregunta_id = request.POST.get('pregunta_id')
                 titulo = request.POST.get('texto_pregunta')
                 video_url = request.POST.get('video_url', '')
                 
-                # Obtenemos el índice de la correcta
                 try:
                     correcta_index = int(request.POST.get('correcta_index'))
                 except (ValueError, TypeError):
                     return JsonResponse({'ok': False, 'error': 'Debes seleccionar una alternativa correcta válida.'})
 
-                # 2. Crear o Actualizar la Pregunta
+                # 3. Crear o Actualizar la Pregunta
                 if pregunta_id:
                     # === MODO EDICIÓN ===
                     preg = get_object_or_404(Pregunta, id=pregunta_id)
@@ -598,20 +616,20 @@ def guardar_pregunta_etapa(request):
                     preg.urlvideo = video_url
                     preg.save()
                     
-                    # Borramos opciones viejas para evitar duplicados/errores
+                    # Borrar opciones anteriores para recrearlas limpiamente
                     preg.opciones.all().delete() 
                 else:
                     # === MODO CREACIÓN ===
                     etapa = get_object_or_404(Etapa, id=etapa_id)
                     preg = Pregunta.objects.create(
                         id_etapa=etapa,
-                        docente=request.user.docente, # Asumiendo que el usuario logueado es el docente
+                        docente=docente,    # <--- CORREGIDO: Usamos el objeto docente obtenido de la sesión
                         titulo=titulo,
                         urlvideo=video_url,
-                        tipo='MULTIPLE' # Importante definir el tipo
+                        tipo='MULTIPLE'
                     )
 
-                # 3. Crear las 4 opciones (CORREGIDO)
+                # 4. Crear las 4 opciones
                 for i in range(1, 5):
                     texto_op = request.POST.get(f'respuesta_{i}')
                     retro_op = request.POST.get(f'retro_{i}', '')
@@ -619,10 +637,10 @@ def guardar_pregunta_etapa(request):
                     
                     if texto_op:
                         OpcionMultiple.objects.create(
-                            pregunta=preg,               # CORREGIDO: 'pregunta' en vez de 'id_pregunta'
-                            texto_opcion=texto_op,       # CORREGIDO: 'texto_opcion' (verifica si es singular)
+                            pregunta=preg,
+                            texto_opcion=texto_op,
                             retroalimentacion=retro_op,
-                            is_correct=es_la_correcta    # CORREGIDO: 'is_correct' en vez de 'es_correcta'
+                            is_correct=es_la_correcta
                         )
 
             return JsonResponse({'ok': True})
@@ -652,11 +670,35 @@ def obtener_pregunta_api(request, pk):
 def eliminar_pregunta_api(request, pk):
     if request.method == 'POST':
         try:
-            Pregunta.objects.get(pk=pk).delete()
+            # 1. Obtener la pregunta y sus relaciones antes de borrar
+            pregunta = get_object_or_404(Pregunta, pk=pk)
+            etapa = pregunta.id_etapa
+            paciente = etapa.id_paciente
+            
+            # 2. Eliminar la pregunta
+            pregunta.delete()
+            
+            # 3. Lógica de Bloqueo: 
+            # Si estamos en la Etapa 1 y acabamos de borrar la última pregunta...
+            if etapa.numetapa == 1:
+                # Verificamos si quedaron preguntas en esta etapa
+                quedan_preguntas = Pregunta.objects.filter(id_etapa=etapa).exists()
+                
+                if not quedan_preguntas:
+                    # BLOQUEO INMEDIATO:
+                    # Marcamos el paciente como no visible y no completo.
+                    # Esto asegura que nadie pueda ver el caso roto y, 
+                    # al recargar la página, el HTML detectará que la Etapa 1 está vacía
+                    # y bloqueará visualmente las pestañas 2 y 3.
+                    paciente.visible = False
+                    paciente.completo = False
+                    paciente.save()
+            
             return JsonResponse({'ok': True})
-        except:
-            return JsonResponse({'ok': False})
-    return JsonResponse({'ok': False})
+        except Exception as e:
+            return JsonResponse({'ok': False, 'error': str(e)})
+            
+    return JsonResponse({'ok': False, 'error': 'Método no permitido'})
 
 # --- API AJAX DE EXPLORACIÓN (ETAPA 2) ---
 @csrf_exempt
