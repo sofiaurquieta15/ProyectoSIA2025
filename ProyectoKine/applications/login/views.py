@@ -104,7 +104,7 @@ def editar_perfil_docente(request):
                 docente.correo_docente = request.POST.get('correo') 
                 docente.save()
                 messages.success(request, "Datos actualizados correctamente")
--
+
         elif tipo_accion == 'password':
             pass_actual = request.POST.get('password_actual')
             pass_nueva = request.POST.get('password_nueva')
