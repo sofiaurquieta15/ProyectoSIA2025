@@ -32,19 +32,33 @@ El proyecto ofrece dos métodos de ejecución: 1. **Mediante contenedores** (usa
     -  POSTGRES_HOST=db
     -  POSTGRES_PORT=5432
 4. Ejecución y Despliegue de Docker en el terminal
+   - En la CMD ( a la altura del manage, no se ingresa al entorno) ejecuta los siguientes comandos: 
+	        - docker-compose build
+            - docker-compose up -d
     -  NOTA: no cierre esta terminal
-    -  Utilizar el comando: docker-compose up –build
-5. Ejecutar Migraciones y Recolectar Estáticos:
+6. Ejecutar Migraciones y Recolectar Estáticos:
    - 5.1 Abrir una nueva terminal y ejecutar los siguientes comandos, uno a la vez.
+   - **Hacer las migraciones:**
+   - docker-compose exec web python manage.py makemigrates
    - **Ejecutar migraciones:**
    - docker-compose exec web python manage.py migrate
    - **Recolectar archivos estáticos:**
    - docker-compose exec web python manage.py collectstatic --noinput
    - **Crear Super Usuario:**
    - docker-compose exec web python manage.py createsuperuser
-6. Acceder a la Aplicación:
-   - Abre tu navegador y dirígete a: http://localhost:8000
-7. Verificación:
+7. Acceder a la Aplicación:
+   - Abre tu navegador y dirígete a: http://kinelearn.ucn.cl/ o http://127.0.0.1
+         - Nota: Si se quiere que http://kinelearn.ucn.cl funcione, se debe:
+                 - Ir a tu Windows en archivos.
+                 - Carpeta System32.
+                 - Drivers.
+                 - Carpeta “Etc”.
+                 - Doc “HOSTS” .
+                 - Abrirlo con visual studio.
+                 - Agregar al final (antes de la última línea): 127.0.0.1 kinelearn.ucn.cl
+                 - Guardar cambios (los más probable es que salte una alerta, debes presionar retry as admin).
+                 - Cerrar y aceptar los cambios en el dispositivo.
+8. Verificación:
    - Verificar que el proyecto y sus servicios (WEB y BD) aparezcan como activos en Docker Desktop.
  
 ### Opción 2: Instalación Local (Python/PostgreSQL)
